@@ -1,3 +1,5 @@
+# install.packages('ggimage')
+library(ggimage)
 library(broom)
 library(rio)
 library(RCurl)
@@ -12,11 +14,14 @@ library(vip)
 library(caTools)
 library(rstanarm)
 library(tidymodels)
-library(devtools)
+install.packages('devtools')
+Ylibrary(devtools)
 # uninstall("NRLfastR")
-# remove.packages('NRLfastR')
-install("C:/Users/dan.fraser/Documents/NRLfastR", force = TRUE)
-library(NRLfastR)
+ remove.packages('devtools')
+# install("C:/Users/dan.fraser/Documents/NRLfastR", force = TRUE)
+# library(NRLfastR)
+
+options(expressions = 5000)
 
 # devtools::install("C:/Users/dan.fraser/Downloads/trcpalette2024_0.0.0.9000/trcpalette2024")
 # library(trcpalette2024)
@@ -408,18 +413,70 @@ Teams_expected_points <- Training_data %>%
             actual_points = sum(Scores),
             expected_points = sum(`Predicted points`),
             points_oe = sum(Over_expected)
-            )
+            ) %>%
+  ungroup() %>%
+  left_join(NRL_logos,by = 'Team')
+
 view(Teams_expected_points)
 
+## NRL_logos ====
+view(NRL_logos)
+NRL_logos <- data.frame(
+  Team = c("Broncos","Bulldogs","Cowboys","Dolphins","Dragons","Eels","Knights","Panthers","Rabbitohs",
+           "Raiders","Roosters","SeaEagles","Sharks","Storm","Titans","Warriors","West Tigers"),
+  url = c("https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Broncos.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Bulldogs.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Cowboys.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Dolphins.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Dragons.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Eels.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Knights.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Panthers.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Rabbitohs.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Raiders.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Roosters.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/SeaEagles.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Sharks.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Storm.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Titans.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/Warriors.png",
+          "https://raw.githubusercontent.com/dfraser22/NFLfastR/refs/heads/main/png_files/WestTigers.png"),
+  stringsAsFactors = FALSE
+)
+
+# Teams_expected_points
 Teams_plot <- Teams_expected_points %>%
+  filter(Season == '2024') %>%
   ggplot(aes(x = expected_points,y = actual_points)) +
   geom_point() +
-  geom_text(label = paste(Teams_expected_points$Team,Teams_expected_points$Season),
-            check_overlap = TRUE,nudge_x = 5,nudge_y = 5) +
+  # geom_text(label = paste(Teams_expected_points$url,Teams_expected_points$Season),
+  #           check_overlap = TRUE,nudge_x = 5,nudge_y = 5) +
   geom_hline(yintercept = mean(Teams_expected_points$actual_points)) +
   geom_vline(xintercept = mean(Teams_expected_points$expected_points)) +
-  geom_smooth(method = lm)
-ggplotly(Teams_plot)
+  geom_smooth(method = lm) +
+  geom_image(aes(image = url),asp = 16/9, size = 0.05)
+  # geom_text(label = paste(Teams_expected_points$Season),
+  #           check_overlap = TRUE,nudge_x = 5,nudge_y = 5, size = 2.5)
+Teams_plot
+
+interactive_plot <- Teams_plot %>%
+  ggplotly() %>%
+  layout(images = list(
+    list(source = Teams_expected_points$url,
+         x = Teams_expected_points$expected_points,
+         y = Teams_expected_points$actual_points,
+         sizex = 0.2,  # Adjust size as needed
+         sizey = 0.2,
+         xanchor = "center",
+         yanchor = "middle",
+         layer = "above",
+         sizing = "contain",
+         opacity = 1,
+         visible = TRUE)
+  ))
+
+# Show the plot
+interactive_plot
 
 ## Testing V1 on Test Data ====
 
