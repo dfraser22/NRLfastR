@@ -23,9 +23,6 @@ Ylibrary(devtools)
 
 options(expressions = 5000)
 
-# devtools::install("C:/Users/dan.fraser/Downloads/trcpalette2024_0.0.0.9000/trcpalette2024")
-# library(trcpalette2024)
-
 # Kick % correlation to winning
 # Way of analysing risk taking (errors) vs line breaks
 # Percentage of try assists that are kicks vs passes
