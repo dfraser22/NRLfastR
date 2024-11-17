@@ -1,0 +1,251 @@
+---
+title: "NRL analysis"
+output: html_document
+date: "2024-11-16"
+---
+
+```{r setup, include=FALSE}
+library(broom)
+library(rio)
+library(RCurl)
+library(readxl)
+library(httr)
+library(tidyverse)
+library(plotly)
+library(corrplot)
+library(ggcorrplot)
+library(stringr)
+library(vip)
+library(caTools)
+library(rstanarm)
+library(tidymodels)
+# library(devtools)
+
+# install("C:/Users/dan.fraser/Documents/NRLfastR", force = TRUE)
+# library(NRLfastR)
+```
+
+Data
+
+```{r data, include=FALSE}
+NRL_seasons_Original <- read_xlsx("C:/Users/dan.fraser/Downloads/nrl_all_match_stats_2021_2024_wide.xlsx")
+
+NRL_Endof2024 <- read_xlsx("C:/Users/dan.fraser/Downloads/nrl_all_match_stats_2024_wide.xlsx")
+
+NRL_2021_2024 <- rbind(NRL_seasons_Original,NRL_Endof2024)
+```
+
+### Merging data/Creating NRL_seasons
+
+```{r NRL_seasons, include=FALSE}
+NRL_seasons <- NRL_2021_2024 %>% rename("Set Restarts Awarded" = Awarded) %>%
+  mutate(Possession = as.numeric(gsub("%", "",Possession)),
+                                      Territory = as.numeric(gsub("%", "",Territory))) %>%
+  separate(`Completion Rate`, into = c("numerator", "denominator"), sep = "/", convert = TRUE) %>%
+  mutate(`Completion Rate %` = round(numerator / denominator,2) * 100,
+          Average_Metres_Per_Run = round(as.numeric(`Run Metres`)/as.numeric(Runs),2)) %>%
+  select(-numerator, -denominator) %>%
+  mutate(across(c("Scores","Possession","Territory","Runs",
+                  "Run Metres","Dummy Half Runs","Tackle Busts","Post Contact Metres","Offloads","Linebreaks",
+                  "20m Restarts","Tackled In Opp 20","In Goal Escapes","Set Restarts Awarded","Tackles","Missed Tackles",
+                  "Correct","Incorrect","Errors","Penalties Conceded","Kicks","Kick Metres",
+                  "40/20s","20/40s","Attacking Kicks","Drop Outs","Forced Drop Outs","Kicks Dead",
+                  "Completion Rate %",'Average_Metres_Per_Run'), ~ as.numeric(.))) %>%
+  mutate(Season = case_when(
+     startsWith(ID, "2024") ~ "2024",
+     startsWith(ID, "2023") ~ "2023",
+     startsWith(ID, "2022") ~ "2022",
+     startsWith(ID, "2021") ~ "2021"))
+```
+
+### Creating Full_Fast_NRLr
+
+```{r Full_Fast_NRLr, include=FALSE}
+even_indices <- seq(2, nrow(NRL_seasons), by = 2)
+odd_indices <- seq(1, nrow(NRL_seasons), by = 2)
+
+# Subset the original dataframe using the even indices
+NRL_away_teams <- NRL_seasons[even_indices, ]
+NRL_home_teams <- NRL_seasons[odd_indices, ]
+
+Fast_NRLr <- inner_join(NRL_home_teams,NRL_away_teams,by=c('ID','Season'))
+
+New_cols <- c("ID","Home Team","Home Score",
+"Home Possession","Home Territory","Home Runs",
+"Home Run Metres","Home Dummy Half Runs","Home Tackle Busts",
+"Home Post Contact Metres", "Home Offloads", "Home Linebreaks",
+"Home 20m Restarts","Home Tackled In Opp 20","Home In Goal Escapes",
+"Home Awarded Set Restarts","Home Tackles","Home Missed Tackles",
+"Home Correct Reviews","Home Incorrect Reviews","Home Errors",
+"Home Penalties Conceded",  "Home Kicks","Home Kick Metres",
+"Home 40/20s","Home 20/40s","Home Attacking Kicks",
+"Home Drop Outs","Home Forced Drop Outs","Home Kicks Dead",
+"Home Completion Rate","Home Average Metres Per Run",
+"Season","Away Team","Away Score",
+"Away Possession","Away Territory","Away Runs",
+"Away Run Metres","Away Dummy Half Runs","Away Tackle Busts",
+"Away Post Contact Metres","Away Offloads","Away Linebreaks",
+"Away 20m Restarts","Away Tackled In Opp 20","Away In Goal Escapes",
+"Away Awarded Set Restarts", "Away Tackles","Away Missed Tackles",
+"Away Correct Reviews","Away Incorrect Reviews","Away Errors",
+"Away Penalties Conceded","Away Kicks","Away Kick Metres",
+"Away 40/20s","Away 20/40s","Away Attacking Kicks",
+"Away Drop Outs","Away Forced Drop Outs","Away Kicks Dead",
+"Away Completion Rate","Away Average Metres Per Run")
+
+colnames(Fast_NRLr) <- New_cols
+
+Fast_NRLr <- Fast_NRLr %>% relocate("ID","Home Team","Home Score","Away Team","Away Score",
+"Home Possession","Home Territory",
+"Away Possession","Away Territory",
+"Home Runs","Home Run Metres","Away Runs",
+"Away Run Metres","Home Dummy Half Runs","Away Dummy Half Runs",
+"Home Tackle Busts","Away Tackle Busts",
+"Home Post Contact Metres","Away Post Contact Metres","Home Average Metres Per Run",
+"Away Average Metres Per Run","Home Offloads","Away Offloads",
+"Home Linebreaks","Away Linebreaks",
+"Home 20m Restarts","Away 20m Restarts","Home Completion Rate",
+"Away Completion Rate","Home Tackled In Opp 20","Away Tackled In Opp 20",
+"Home In Goal Escapes","Away In Goal Escapes","Home Awarded Set Restarts","Away Awarded Set Restarts",
+"Home Tackles", "Away Tackles","Home Missed Tackles",
+"Away Missed Tackles","Home Correct Reviews","Home Incorrect Reviews",
+"Away Correct Reviews","Away Incorrect Reviews",
+"Home Errors","Away Errors","Home Penalties Conceded","Away Penalties Conceded",
+"Home Kicks","Away Kicks",
+"Home Kick Metres","Away Kick Metres","Home 40/20s","Home 20/40s",
+"Away 40/20s","Away 20/40s",
+"Home Attacking Kicks","Away Attacking Kicks","Home Drop Outs",
+"Away Drop Outs","Home Forced Drop Outs","Away Forced Drop Outs",
+"Home Kicks Dead","Away Kicks Dead","Season") %>%
+mutate(across(c("Home Score","Away Score","Home Possession","Home Territory",
+                "Away Possession","Away Territory","Home Completion Rate",
+                "Away Completion Rate","Home Runs","Home Run Metres","Away Runs",
+                "Away Run Metres","Home Dummy Half Runs","Away Dummy Half Runs",
+                "Home Tackle Busts","Away Tackle Busts","Home Post Contact Metres",
+                "Away Post Contact Metres","Home Offloads","Away Offloads",
+                "Home Linebreaks","Away Linebreaks",
+                "Home 20m Restarts","Away 20m Restarts","Home Tackled In Opp 20",
+                "Away Tackled In Opp 20",
+                "Home In Goal Escapes","Away In Goal Escapes","Home Awarded Set Restarts",
+                "Away Awarded Set Restarts",
+                "Home Tackles", "Away Tackles","Home Missed Tackles",
+                "Away Missed Tackles","Home Correct Reviews","Home Incorrect Reviews",
+                "Away Correct Reviews","Away Incorrect Reviews",
+                "Home Errors","Away Errors","Home Penalties Conceded","Away Penalties Conceded",
+                "Home Kicks","Away Kicks",
+                "Home Kick Metres","Away Kick Metres","Home 40/20s","Home 20/40s",
+                "Away 40/20s","Away 20/40s",
+                "Home Attacking Kicks","Away Attacking Kicks","Home Drop Outs",
+                "Away Drop Outs","Home Forced Drop Outs","Away Forced Drop Outs",
+                "Home Kicks Dead","Away Kicks Dead",
+                "Home Average Metres Per Run","Away Average Metres Per Run"),
+                 ~ as.numeric(.))) %>%
+  mutate('Home result' = case_when(as.numeric(as.character(`Home Score`)) > `Away Score` ~ 'W',
+                                   `Home Score` == `Away Score` ~ 'D',
+                                   `Away Score` > `Home Score` ~ 'L'),
+         'Away result' = case_when(`Home Score` > `Away Score` ~ 'L',
+                                   `Home Score` == `Away Score` ~ 'D',
+                                   `Away Score` > `Home Score` ~ 'W'),
+         'Home Completion Difference' = `Home Completion Rate` - `Away Completion Rate`,
+         'Away Completion Difference' = `Away Completion Rate` - `Home Completion Rate`,
+         'Home Score Against' = `Away Score`,
+         'Away Score Against' = `Home Score`) %>%
+  mutate('Total runs' = `Home Runs` + `Away Runs`)
+
+# Home and Away splits
+Away_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Away Team`,`Away Score`,`Away result`,
+                                       `Away Possession`,`Away Territory`,`Away Runs`,
+                                       `Away Run Metres`,`Away Dummy Half Runs`,`Away Tackle Busts`,
+                                       `Away Post Contact Metres`,`Away Offloads`,`Away Linebreaks`,
+                                       `Away 20m Restarts`,`Away Completion Rate`,`Away Tackled In Opp 20`,
+                                       `Away In Goal Escapes`,`Away Awarded Set Restarts`,`Away Tackles`,
+                                       `Away Missed Tackles`,`Away Correct Reviews`,`Away Incorrect Reviews`,
+                                       `Away Errors`,`Away Penalties Conceded`,`Away Kicks`,
+                                       `Away Kick Metres`,`Away 40/20s`,`Away 20/40s`,
+                                       `Away Attacking Kicks`,`Away Drop Outs`,`Away Forced Drop Outs`,
+                                       `Away Forced Drop Outs`,`Away Kicks Dead`,`Away Completion Difference`,
+                                       `Away Score Against`,`Away Average Metres Per Run`,`Home Average Metres Per Run`,
+                                       `Home Linebreaks`,`Total runs`) %>%
+  mutate('Average run difference' = `Away Average Metres Per Run` - `Home Average Metres Per Run`,
+         'Line break rate' = round(`Away Linebreaks`/`Away Runs`,2),
+         'Line break differential' = `Away Linebreaks` - `Home Linebreaks`)
+
+Home_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Home Team`,`Home Score`,`Home result`,
+                                       `Home Possession`,`Home Territory`,`Home Runs`,
+                                       `Home Run Metres`,`Home Dummy Half Runs`,`Home Tackle Busts`,
+                                       `Home Post Contact Metres`,`Home Offloads`,`Home Linebreaks`,
+                                       `Home 20m Restarts`,`Home Completion Rate`,`Home Tackled In Opp 20`,
+                                       `Home In Goal Escapes`,`Home Awarded Set Restarts`,`Home Tackles`,
+                                       `Home Missed Tackles`,`Home Correct Reviews`,`Home Incorrect Reviews`,
+                                       `Home Errors`,`Home Penalties Conceded`,`Home Kicks`,
+                                       `Home Kick Metres`,`Home 40/20s`,`Home 20/40s`,
+                                       `Home Attacking Kicks`,`Home Drop Outs`,`Home Forced Drop Outs`,
+                                       `Home Forced Drop Outs`,`Home Kicks Dead`,`Home Completion Difference`,
+                                       `Home Score Against`,`Home Average Metres Per Run`,
+                                       `Away Average Metres Per Run`,`Away Linebreaks`,`Total runs`) %>%
+  mutate('Average run difference' = `Home Average Metres Per Run` - `Away Average Metres Per Run`,
+         'Line break rate' = round(`Home Linebreaks`/`Home Runs`,2),
+         'Line break differential' = `Home Linebreaks` - `Away Linebreaks`)
+
+Full_colnames <- c("ID","Season","Team","Scores","Result","Possession","Territory","Runs",
+                   "Run Metres","Dummy Half Runs","Tackle Busts","Post Contact Metres",
+                   "Offloads","Linebreaks","20m Restarts","Completion Rate",
+                   "Tackled In Opp 20","In Goal Escapes",
+                   "Awarded","Tackles","Missed Tackles","Correct","Incorrect","Errors","Penalties Conceded",
+                   "Kicks","Kick Metres","40/20s","20/40s","Attacking Kicks","Drop Outs",
+                   "Forced Drop Outs","Kicks Dead","Completion Difference","Score Against",
+                   "Average Metres Per Run","Average Metres Per Run Conceded",
+                   'Line breaks conceded','Total runs', 'Average run difference',
+                   'Line break rate','Line break differential')
+
+colnames(Home_Fast_NRLr) <- Full_colnames
+colnames(Away_Fast_NRLr) <- Full_colnames
+
+# Creating Full_Fast_NRLr ####
+Full_Fast_NRLr <- rbind(Home_Fast_NRLr,Away_Fast_NRLr) %>%
+  mutate(Team = str_to_title(Team))
+
+Full_Fast_NRLr <- Full_Fast_NRLr %>%
+mutate('Game Type' = case_when(ID %in% c('2023-31-1','2023-30-2','2023-30-1',
+                                         "2023-28-1","2023-28-2","2023-28-3",
+                                         "2023-28-4","2023-29-1","2023-29-2",
+                                         "2022-26-1","2022-26-2","2022-26-3",
+                                         "2022-26-4","2022-27-1","2022-27-2",
+                                         "2022-28-1","2022-28-2","2022-29-1",
+                                         "2021-26-1","2021-26-2","2021-26-3",
+                                         "2021-26-4","2021-27-1","2021-27-2",
+                                         "2021-28-1","2021-28-2","2021-29-1") ~ "Playoff",
+                               TRUE ~ 'Regular Season'))
+```
+
+### Creating Long version of data for logistic regression
+
+```{r Fast_NRLr_long, include=FALSE}
+Fast_NRLr_long <- Fast_NRLr %>%
+  pivot_longer(cols = c(`Home Score`, `Away Score`),
+               names_to = "Location",
+               values_to = "Score") %>%
+  mutate(Result = ifelse(Location == "Home Score", `Home result`, `Away result`)) %>%
+  select(Score, Result,`Home Team`,`Away Team`,ID,`Home result`,
+         `Away result`) %>%
+  mutate(Result = str_replace(Result,"W","1"),
+         Result = str_replace(Result,"L","0")) %>%
+  filter(Result %in% c("0","1")) %>%
+  mutate(Result = as.numeric(as.character(Result)))
+```
+
+### Logistic regression
+
+```{r logistic_regression}
+for_model <- glm(Fast_NRLr_long$Result~Fast_NRLr_long$Score,
+             family = "binomial")
+summary(for_model)
+```
+
+Logistic regresion plot
+
+```{r logistic_regression_plot}
+for_model <- glm(Fast_NRLr_long$Result~Fast_NRLr_long$Score,
+             family = "binomial")
+summary(for_model)
+```
