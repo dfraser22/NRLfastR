@@ -19,10 +19,13 @@ library(vip)
 library(caTools)
 library(rstanarm)
 library(tidymodels)
+library(DT)
 # library(devtools)
 
 # install("C:/Users/dan.fraser/Documents/NRLfastR", force = TRUE)
 # library(NRLfastR)
+
+# renv::restore()
 ```
 
 Data
@@ -245,7 +248,42 @@ summary(for_model)
 Logistic regresion plot
 
 ```{r logistic_regression_plot}
-for_model <- glm(Fast_NRLr_long$Result~Fast_NRLr_long$Score,
-             family = "binomial")
-summary(for_model)
+Log_Regression_Plot <- Fast_NRLr_long %>%
+  ggplot(aes(x=Score,y=Result)) +
+  geom_point() +
+  stat_smooth(method = "glm",se=FALSE,
+              method.args = list(family='binomial'))
+ggplotly(Log_Regression_Plot)
 ```
+
+Completion difference
+
+```{r completion_difference,include=TRUE}
+Full_Fast_NRLr %>%
+  filter(`Completion Difference` > 0) %>%
+  count(Result) %>%
+  mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
+  DT::datatable()
+```
+
+Line break differential
+
+```{r LBdifferential,include=TRUE}
+Full_Fast_NRLr %>%
+  filter(`Line break differential` > 0) %>%
+  count(Result) %>%
+  mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
+  DT::datatable()
+```
+Line break differential & Completion difference
+
+```{r LBdifferential_CompletionDifference,include=TRUE}
+Full_Fast_NRLr %>%
+  filter(`Line break differential` > 0 & `Completion Difference` > 0) %>%
+  count(Result) %>%
+  mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
+  DT::datatable()
+```
+
+
+
