@@ -279,154 +279,14 @@ NRL_PlayerStats <-
   read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_player_stats_with_urls.xlsx") %>%
   select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
 View(NRL_PlayerStats)
+unique(NRL_PlayerStats$URL) # 760
 
-NRL_PlayerStats_Finals_Original <-
-  read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_finals_player_stats_with_urls.xlsx") %>%
-  select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
-colnames(NRL_PlayerStats_Finals_Original)
-
-NRL_PlayerStats_2024_Finals <-
-  read_csv("C:/Users/dan.fraser/Downloads/nrl_player_stats_2024_rounds_24_to_27.csv",
-           locale = locale(encoding = "UTF-8"))
-View(NRL_PlayerStats_2024_Finals)
-
-unique(NRL_PlayerStats_2024_Finals$URL)
-
-NRL_PlayerStats_2024_Finals$Player <-
-  iconv(NRL_PlayerStats_2024_Finals$Player, from = "latin1", to = "UTF-8", sub = "byte")
-
-# NRL_PlayerStats_2024_Finals$Player <- gsub(" ", "", NRL_PlayerStats_2024_Finals$Player)
-# NRL_PlayerStats_2024_Finals$Player <- gsub("\\s+", "", NRL_PlayerStats_2024_Finals$Player)
-NRL_PlayerStats_2024_Finals$Player <- str_replace_all(NRL_PlayerStats_2024_Finals$Player, "\\s+", "")
-
-unique(NRL_PlayerStats_2024_Finals$Player)
-Player_ColNames <- c("Player","Number","Position","MinsPlayed",
-                     "Points","Tries","Conversions","ConversionAttempts",
-                     "PenaltyGoals","GoalConversionRate","1PointFieldGoals","2PointFieldGoals",
-                     "TotalPoints","AllRuns","AllRunMetres","KickReturnMetres",
-                     "PostContactMetres","LineBreaks","LineBreakAssists","TryAssists",
-                     "LineEngagedRuns","TackleBreaks","HitUps","PlayTheBall",
-                     "AveragePlayTheBallSpeed","DummyHalfRuns","DummyHalfRunMetres","OneonOneSteal",
-                     "Offloads","DummyPasses","Passes","Receipts",
-                     "PassesToRunRatio","TackleEfficiency","TacklesMade","MissedTackles",
-                     "IneffectiveTackles","Intercepts","KicksDefused","Kicks",
-                     "KickingMetres","ForcedDropOuts","BombKicks","Grubbers",
-                     "40/20","20/40","CrossFieldKicks","KickedDead",
-                     "Errors","HandlingErrors","OneonOneLost","Penalties",
-                     "RuckInfringements","Inside10Metres","OnReport",
-                     "SinBins","SendOffs","StintOne","StintTwo","Team","URL")
-
-colnames(NRL_PlayerStats) <- Player_ColNames
-colnames(NRL_PlayerStats_Finals_Original) <- Player_ColNames
-colnames(NRL_PlayerStats_2024_Finals) <- Player_ColNames
-
-NRL_PlayerStats_JoinedOriginal <-
-  rbind(NRL_PlayerStats,NRL_PlayerStats_Finals_Original,NRL_PlayerStats_2024_Finals)
-
-unique(NRL_PlayerStats_JoinedOriginal$Player)
-
-team_mapping <- c(
-  "rabbitohs" = "Rabbitohs",
-  "bulldogs" = "Bulldogs",
-  "eels" = "Eels",
-  "titans" = "Titans",
-  "sea-eagles" = "Sea Eagles",
-  "cowboys" = "Cowboys",
-  "wests-tigers" = "Wests Tigers",
-  "sharks" = "Sharks",
-  "storm" = "Storm",
-  "knights" = "Knights",
-  "broncos" = "Broncos",
-  "panthers" = "Panthers",
-  "dragons" = "Dragons",
-  "roosters" = "Roosters",
-  "raiders" = "Raiders",
-  "warriors" = "Warriors",
-  "dolphins" = "Dolphins"
-)
-
-# "IzaacTu\u0092itupou Thompson" "mesTedesco" "Gordon ChanKumTong"  "Tevita PangaiJunior"
-# "De LaSalleVa'a"   "Tallyn DaSilva"    "Te  MaireMartin" "Joseph- AukusoSuaalii"
-NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
-  mutate(Player = case_when(
-    Player %in% c("TeMaireMartin", "AJBrimson",
-                  "Joseph-AukusoSua'ali'i", "JJCollins",
-                  "TukuHauTapuha", "mesTedesco",
-                  "RaymondTuaimalo Vaega","IzaacTu’itupou Thompson",
-                  "GordonChan Kum Tong","IzaacTu\u0092itupouThompson",
-                  "Gordon ChanKumTong", "Tevita PangaiJunior",
-                  "De LaSalleVa'a", "Tallyn DaSilva",
-                  "Te  MaireMartin", "Joseph- AukusoSuaalii") ~ Player,
-    TRUE ~ str_replace(Player, "(?<!^)([A-Z])", " \\1")
-  )) %>%
-  mutate(Player = str_replace(Player, "TeMaireMartin", "Te Maire Martin"),
-         Player = str_replace(Player, "AJBrimson", "AJ Brimson"),
-         Player = str_replace(Player, "Joseph-AukusoSua'ali'i", "Joseph-Aukuso Sua'ali'i"),
-         Player = str_replace(Player, "Joseph- AukusoSuaalii", "Joseph-Aukuso Sua'ali'i"),
-         Player = str_replace(Player, "JJCollins", "JJ Collins"),
-         Player = str_replace(Player, "TukuHauTapuha", "Tuku Hau Tapuha"),
-         Player = str_replace(Player, "mesTedesco", "James Tedesco"),
-         Player = str_replace(Player, "RaymondTuaimalo Vaega", "Raymond Tuaimalo Vaega"),
-         Player = str_replace(Player, "IzaacTu’itupou Thompson", "Izaac Tu’itupou Thompson"),
-         Player = str_replace(Player, "GordonChan Kum Tong", "Gordon Chan Kum Tong"),
-         Player = str_replace(Player, "Gordon ChanKumTong", "Gordon Chan Kum Tong"),
-         Player = str_replace(Player, "IzaacTu\u0092itupouThompson", "Izaac Tu’itupou Thompson"),
-         Player = str_replace(Player, "IzaacTu\u0092itupouThompson", "Izaac Tu’itupou Thompson"),
-         Player = str_replace(Player, "Tallyn DaSilva", "Tallyn Da Silva"),
-         Player = str_replace(Player, "Te  MaireMartin", "Te Maire Martin"),
-         Player = str_replace(Player, "Tevita PangaiJunior", "Tevita Pangai Junior")
-         ) %>%
-  mutate(Season = case_when(str_detect(URL,'/2021/') ~ '2021',
-                            str_detect(URL,'/2022/') ~ '2022',
-                            str_detect(URL,'/2023/') ~ '2023',
-                            str_detect(URL,'/2024/') ~ '2024')) %>%
-  mutate(Game_Type = case_when(str_detect(URL,'finals') ~ 'Playoffs',
-                               str_detect(URL,'grand') ~ 'Grand final',
-                               TRUE ~ 'Regular season'),
-         Opponent = str_extract(URL, "(?<=-v-)[^/]+(?=/)")) %>%
-  mutate(Opponent = recode(Opponent, !!!team_mapping)) %>%
-  mutate(GoalConversionRate = str_remove_all(GoalConversionRate,"%"),
-         TackleEfficiency = str_remove_all(TackleEfficiency,"%"),
-         AveragePlayTheBallSpeed = str_remove_all(AveragePlayTheBallSpeed,"s")) %>%
-  mutate(across(
-    c(Points, Tries, Conversions, ConversionAttempts, PenaltyGoals,
-      GoalConversionRate, `1PointFieldGoals`, `2PointFieldGoals`, TotalPoints,
-      AllRuns, AllRunMetres, KickReturnMetres, PostContactMetres,
-      LineBreaks, LineBreakAssists, TryAssists, LineEngagedRuns,
-      TackleBreaks, HitUps, PlayTheBall, AveragePlayTheBallSpeed,
-      DummyHalfRuns, DummyHalfRunMetres, OneonOneSteal, Offloads,
-      DummyPasses, Passes, Receipts, PassesToRunRatio, TackleEfficiency,
-      TacklesMade, MissedTackles,IneffectiveTackles, Intercepts,
-      KicksDefused, Kicks, KickingMetres,
-      ForcedDropOuts, BombKicks, Grubbers, `40/20`, `20/40`,
-      CrossFieldKicks, KickedDead, Errors, HandlingErrors, OneonOneLost,
-      Penalties, RuckInfringements, Inside10Metres, OnReport, SinBins, SendOffs),
-    ~ as.numeric(str_replace_all(., "-", "0"))
-  )) %>%
-  mutate(TacklesMade = as.numeric(TacklesMade),
-         MissedTackles = as.numeric(MissedTackles),
-         IneffectiveTackles = as.numeric(IneffectiveTackles))
-str(NRL_PlayerStats_Joined)
-
-unique(NRL_PlayerStats_Joined$Team)
-## Seasons & Rounds ####
-# NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
-#   mutate(Season = str_extract(URL, "(?<=/nrl-premiership/)[0-9]{4}"))
-
-unique(NRL_PlayerStats_Joined$Player)
-
-unique(NRL_PlayerStats_Joined$URL)
-NRL_PlayerStats_Joined %>%
-  group_by(URL) %>%
-  count() %>%
-  print(n = 828)
-
-ids_34x_32 <- c("2021-1-1", "2021-1-2", "2021-1-3","2021-1-4", "2021-1-5", "2021-1-6", "2021-1-7", "2021-1-8",
+NRL_PlayerStats_ids_34x_32 <- c("2021-1-1", "2021-1-2", "2021-1-3","2021-1-4", "2021-1-5", "2021-1-6", "2021-1-7", "2021-1-8",
                 "2021-2-1","2021-2-2", "2021-2-3", "2021-2-4", "2021-2-5","2021-2-6", "2021-2-7", "2021-2-8",
                 "2021-3-1","2021-3-2", "2021-3-3", "2021-3-4", "2021-3-5", "2021-3-6", "2021-3-7", "2021-3-8",
                 "2021-4-1","2021-4-2", "2021-4-3", "2021-4-4", "2021-4-5", "2021-4-6", "2021-4-7", "2021-4-8")
-# 32*34 + 796*36
-ids_36_796 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021-5-6", "2021-5-7", "2021-5-8",
+32*34 + 796*36
+NRL_PlayerStats_ids_36 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021-5-6", "2021-5-7", "2021-5-8",
                 "2021-6-1","2021-6-2", "2021-6-3", "2021-6-4", "2021-6-5", "2021-6-6", "2021-6-7","2021-6-8",
                 "2021-7-1","2021-7-2", "2021-7-3", "2021-7-4", "2021-7-5", "2021-7-6", "2021-7-7","2021-7-8",
                 "2021-8-1","2021-8-2", "2021-8-3", "2021-8-4", "2021-8-5", "2021-8-6", "2021-8-7","2021-8-8",
@@ -518,75 +378,193 @@ ids_36_796 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
                 "2024-17-1","2024-17-2","2024-17-3","2024-17-4","2024-17-5","2024-17-6","2024-17-7",
                 "2024-18-1","2024-18-2","2024-18-3","2024-18-4","2024-18-5","2024-18-6","2024-18-7","2024-18-8",
                 "2024-19-1","2024-19-2","2024-19-3","2024-19-4","2024-19-5",
-                "2024-20-1","2024-20-2","2024-20-3","2024-20-4","2024-20-5","2024-20-6","2024-20-7","2024-20-8",
+                "2024-20-1","2024-20-2","2024-20-3","2024-20-4","2024-20-5","2024-20-6","2024-20-7", # "2024-20-8",
                 "2024-21-1","2024-21-2","2024-21-3","2024-21-4","2024-21-5","2024-21-6","2024-21-7","2024-21-8",
                 "2024-22-1","2024-22-2","2024-22-3","2024-22-4","2024-22-5","2024-22-6","2024-22-7","2024-22-8",
-                "2024-23-1","2024-23-2","2024-23-3","2024-23-4","2024-23-5","2024-23-6","2024-23-7","2024-23-8",
-                "2021-26-1","2021-26-2","2021-26-3","2021-26-4",
-                "2021-27-1","2021-27-2","2021-28-1","2021-28-2","2021-29-1",
-                "2022-26-1","2022-26-2","2022-26-3","2022-26-4",
-                "2022-27-1","2022-27-2","2022-28-1","2022-28-2", "2022-29-1",
-              # "2023-27-1","2023-27-2","2023-27-3","2023-27-4","2023-27-5","2023-27-6","2023-27-7","2023-27-8",
-                "2023-28-1","2023-28-2","2023-28-3","2023-28-4",
-                "2023-29-1","2023-29-2","2023-30-1","2023-30-2","2023-31-1",
-              "2024-24-1","2024-24-2","2024-24-3","2024-24-4","2024-24-5","2024-24-6","2024-24-7","2024-24-8",
-              "2024-25-1","2024-25-2","2024-25-3","2024-25-4","2024-25-5","2024-25-6","2024-25-7","2024-25-8",
-              "2024-26-1","2024-26-2","2024-26-3","2024-26-4","2024-26-5","2024-26-6","2024-26-7","2024-26-8",
-              "2024-27-1","2024-27-2","2024-27-3","2024-27-4","2024-27-5","2024-27-6","2024-27-7","2024-27-8",
-              "2024-28-1","2024-28-2","2024-28-3","2024-28-4",
-              "2024-29-1","2024-29-2","2024-30-1","2024-30-2","2024-31-1"
-              )
+                "2024-23-1","2024-23-2","2024-23-3","2024-23-4","2024-23-5","2024-23-6","2024-23-7","2024-23-8")
+length(NRL_PlayerStats_ids_36)
 
-unique(ids_36_796)
-ids_34x_32
 # Use rep to repeat IDs
-repeated_ids_34x_32 <- rep(ids_34x_32, each = 34)
-repeated_ids_36_796 <- rep(ids_36_796, each = 36)
+Repeated_NRL_PlayerStats_ids_34x_32 <- rep(NRL_PlayerStats_ids_34x_32, each = 34)
+Repeated_NRL_PlayerStats_ids_36 <- rep(NRL_PlayerStats_ids_36, each = 36)
 
-NRL_PlayerStats_Joined %>%
-  filter(Season %in% '2024') %>%
-  view()
-
-NRL_PlayerStats_Joined %>%
-  filter(ID %in% '2024-1-1') %>%
-  view()
-
-nrow(NRL_PlayerStats_Joined)
 # Combine all into a single list
-final_ids <- c(repeated_ids_34x_32, repeated_ids_36_796)
-final_ids
+NRL_PlayerStats_final_ids <- c(Repeated_NRL_PlayerStats_ids_34x_32, Repeated_NRL_PlayerStats_ids_36)
+length(NRL_PlayerStats_final_ids)
 
-all_ids <- unique(final_ids)
+NRL_PlayerStats$ID <- NRL_PlayerStats_final_ids
 
-duplicates <- all_ids[duplicated(all_ids)]
-if (length(duplicates) > 0) {
-  print(paste("Duplicate IDs found:", paste(duplicates, collapse = ", ")))
-} else {
-  print("No duplicate IDs found.")
-}
-
-unique(final_ids)
-
-seasons <- substr(all_ids, 1, 4)
-seasons
-season_counts <- table(seasons)
-
-# Print counts per season
-print(season_counts)
-
-ids_2024 <- grep("^2024", all_ids, value = TRUE)
-view(ids_2024)
-# Check the number of IDs for 2024
-length(ids_2024) # Should return 214
+# 30032 - 29744
 
 NRL_PlayerStats_Joined$ID <- final_ids
-nrow(NRL_PlayerStats_Joined)
-unique(NRL_PlayerStats_Joined$URL)
-#
-# colnames(Full_Fast_NRLr)
-# colnames(NRL_PlayerStats_Joined)
-#
-# unique(Full_Fast_NRLr$Team)
+
+NRL_PlayerStats_Finals_Original <-
+  read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_finals_player_stats_with_urls.xlsx") %>%
+  select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
+colnames(NRL_PlayerStats_Finals_Original)
+
+unique(NRL_PlayerStats_Finals_Original$URL) # 27
+
+NRL_PlayerStats_Finals_Original_IDs <-
+  c("2021-26-1","2021-26-2","2021-26-3","2021-26-4",
+    "2021-27-1","2021-27-2","2021-28-1","2021-28-2","2021-29-1",
+    "2022-26-1","2022-26-2","2022-26-3","2022-26-4",
+    "2022-27-1","2022-27-2","2022-28-1","2022-28-2", "2022-29-1",
+    # "2023-27-1","2023-27-2","2023-27-3","2023-27-4","2023-27-5","2023-27-6","2023-27-7","2023-27-8",
+    "2023-28-1","2023-28-2","2023-28-3","2023-28-4",
+    "2023-29-1","2023-29-2","2023-30-1","2023-30-2","2023-31-1")
+
+Repeated_NRL_PlayerStats_Finals_Original_IDs <- rep(NRL_PlayerStats_Finals_Original_IDs, each = 36)
+
+NRL_PlayerStats_Finals_Original$ID <- Repeated_NRL_PlayerStats_Finals_Original_IDs
+
+# # Combine all into a single list
+# NRL_PlayerStats_final_ids <- c(Repeated_NRL_PlayerStats_ids_34x_32, Repeated_NRL_PlayerStats_ids_36)
+# length(NRL_PlayerStats_final_ids)
+
+NRL_PlayerStats_2024_Finals <-
+  read_csv("C:/Users/dan.fraser/Downloads/nrl_player_stats_2024_rounds_24_to_27.csv",
+           locale = locale(encoding = "UTF-8"))
+View(NRL_PlayerStats_2024_Finals)
+
+unique(NRL_PlayerStats_2024_Finals$URL) # 41
+
+NRL_PlayerStats_2024_Finals$Player <-
+  iconv(NRL_PlayerStats_2024_Finals$Player, from = "latin1", to = "UTF-8", sub = "byte")
+
+NRL_PlayerStats_2024_Finals_IDs <-
+  c("2024-24-1","2024-24-2","2024-24-3","2024-24-4","2024-24-5","2024-24-6","2024-24-7","2024-24-8",
+    "2024-25-1","2024-25-2","2024-25-3","2024-25-4","2024-25-5","2024-25-6","2024-25-7","2024-25-8",
+    "2024-26-1","2024-26-2","2024-26-3","2024-26-4","2024-26-5","2024-26-6","2024-26-7","2024-26-8",
+    "2024-27-1","2024-27-2","2024-27-3","2024-27-4","2024-27-5","2024-27-6","2024-27-7","2024-27-8",
+    "2024-28-1","2024-28-2","2024-28-3","2024-28-4",
+    "2024-29-1","2024-29-2","2024-30-1","2024-30-2","2024-31-1")
+
+Repeated_NRL_PlayerStats_2024_Finals_IDs <- rep(NRL_PlayerStats_2024_Finals_IDs, each = 36)
+
+NRL_PlayerStats_2024_Finals$ID <- Repeated_NRL_PlayerStats_2024_Finals_IDs
+
+# NRL_PlayerStats_2024_Finals$Player <- gsub(" ", "", NRL_PlayerStats_2024_Finals$Player)
+# NRL_PlayerStats_2024_Finals$Player <- gsub("\\s+", "", NRL_PlayerStats_2024_Finals$Player)
+NRL_PlayerStats_2024_Finals$Player <- str_replace_all(NRL_PlayerStats_2024_Finals$Player, "\\s+", "")
+
+unique(NRL_PlayerStats_2024_Finals$Player)
+Player_ColNames <- c("Player","Number","Position","MinsPlayed",
+                     "Points","Tries","Conversions","ConversionAttempts",
+                     "PenaltyGoals","GoalConversionRate","1PointFieldGoals","2PointFieldGoals",
+                     "TotalPoints","AllRuns","AllRunMetres","KickReturnMetres",
+                     "PostContactMetres","LineBreaks","LineBreakAssists","TryAssists",
+                     "LineEngagedRuns","TackleBreaks","HitUps","PlayTheBall",
+                     "AveragePlayTheBallSpeed","DummyHalfRuns","DummyHalfRunMetres","OneonOneSteal",
+                     "Offloads","DummyPasses","Passes","Receipts",
+                     "PassesToRunRatio","TackleEfficiency","TacklesMade","MissedTackles",
+                     "IneffectiveTackles","Intercepts","KicksDefused","Kicks",
+                     "KickingMetres","ForcedDropOuts","BombKicks","Grubbers",
+                     "40/20","20/40","CrossFieldKicks","KickedDead",
+                     "Errors","HandlingErrors","OneonOneLost","Penalties",
+                     "RuckInfringements","Inside10Metres","OnReport",
+                     "SinBins","SendOffs","StintOne","StintTwo","Team","URL","ID")
+
+colnames(NRL_PlayerStats) <- Player_ColNames
+colnames(NRL_PlayerStats_Finals_Original) <- Player_ColNames
+colnames(NRL_PlayerStats_2024_Finals) <- Player_ColNames
+
+NRL_PlayerStats_JoinedOriginal <-
+  rbind(NRL_PlayerStats,NRL_PlayerStats_Finals_Original,NRL_PlayerStats_2024_Finals)
+
+unique(NRL_PlayerStats_JoinedOriginal$Player)
+
+team_mapping <- c(
+  "rabbitohs" = "Rabbitohs",
+  "bulldogs" = "Bulldogs",
+  "eels" = "Eels",
+  "titans" = "Titans",
+  "sea-eagles" = "Sea Eagles",
+  "cowboys" = "Cowboys",
+  "wests-tigers" = "Wests Tigers",
+  "sharks" = "Sharks",
+  "storm" = "Storm",
+  "knights" = "Knights",
+  "broncos" = "Broncos",
+  "panthers" = "Panthers",
+  "dragons" = "Dragons",
+  "roosters" = "Roosters",
+  "raiders" = "Raiders",
+  "warriors" = "Warriors",
+  "dolphins" = "Dolphins"
+)
+
+# "IzaacTu\u0092itupou Thompson" "mesTedesco" "Gordon ChanKumTong"  "Tevita PangaiJunior"
+# "De LaSalleVa'a"   "Tallyn DaSilva"    "Te  MaireMartin" "Joseph- AukusoSuaalii"
+NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
+  mutate(Player = case_when(
+    Player %in% c("TeMaireMartin", "AJBrimson",
+                  "Joseph-AukusoSua'ali'i", "JJCollins",
+                  "TukuHauTapuha", "mesTedesco",
+                  "RaymondTuaimalo Vaega","IzaacTu’itupou Thompson",
+                  "GordonChan Kum Tong","IzaacTu\u0092itupouThompson",
+                  "Gordon ChanKumTong", "Tevita PangaiJunior",
+                  "De LaSalleVa'a", "Tallyn DaSilva",
+                  "Te  MaireMartin", "Joseph- AukusoSuaalii") ~ Player,
+    TRUE ~ str_replace(Player, "(?<!^)([A-Z])", " \\1")
+  )) %>%
+  mutate(Player = str_replace(Player, "TeMaireMartin", "Te Maire Martin"),
+         Player = str_replace(Player, "AJBrimson", "AJ Brimson"),
+         Player = str_replace(Player, "Joseph-AukusoSua'ali'i", "Joseph-Aukuso Sua'ali'i"),
+         Player = str_replace(Player, "Joseph- AukusoSuaalii", "Joseph-Aukuso Sua'ali'i"),
+         Player = str_replace(Player, "JJCollins", "JJ Collins"),
+         Player = str_replace(Player, "TukuHauTapuha", "Tuku Hau Tapuha"),
+         Player = str_replace(Player, "mesTedesco", "James Tedesco"),
+         Player = str_replace(Player, "RaymondTuaimalo Vaega", "Raymond Tuaimalo Vaega"),
+         Player = str_replace(Player, "IzaacTu’itupou Thompson", "Izaac Tu’itupou Thompson"),
+         Player = str_replace(Player, "GordonChan Kum Tong", "Gordon Chan Kum Tong"),
+         Player = str_replace(Player, "Gordon ChanKumTong", "Gordon Chan Kum Tong"),
+         Player = str_replace(Player, "IzaacTu\u0092itupouThompson", "Izaac Tu’itupou Thompson"),
+         Player = str_replace(Player, "IzaacTu\u0092itupouThompson", "Izaac Tu’itupou Thompson"),
+         Player = str_replace(Player, "Tallyn DaSilva", "Tallyn Da Silva"),
+         Player = str_replace(Player, "Te  MaireMartin", "Te Maire Martin"),
+         Player = str_replace(Player, "Tevita PangaiJunior", "Tevita Pangai Junior")
+         ) %>%
+  mutate(Season = case_when(str_detect(URL,'/2021/') ~ '2021',
+                            str_detect(URL,'/2022/') ~ '2022',
+                            str_detect(URL,'/2023/') ~ '2023',
+                            str_detect(URL,'/2024/') ~ '2024')) %>%
+  mutate(Game_Type = case_when(str_detect(URL,'finals') ~ 'Playoffs',
+                               str_detect(URL,'grand') ~ 'Grand final',
+                               TRUE ~ 'Regular season'),
+         Opponent = str_extract(URL, "(?<=-v-)[^/]+(?=/)")) %>%
+  mutate(Opponent = recode(Opponent, !!!team_mapping)) %>%
+  mutate(GoalConversionRate = str_remove_all(GoalConversionRate,"%"),
+         TackleEfficiency = str_remove_all(TackleEfficiency,"%"),
+         AveragePlayTheBallSpeed = str_remove_all(AveragePlayTheBallSpeed,"s")) %>%
+  mutate(across(
+    c(Points, Tries, Conversions, ConversionAttempts, PenaltyGoals,
+      GoalConversionRate, `1PointFieldGoals`, `2PointFieldGoals`, TotalPoints,
+      AllRuns, AllRunMetres, KickReturnMetres, PostContactMetres,
+      LineBreaks, LineBreakAssists, TryAssists, LineEngagedRuns,
+      TackleBreaks, HitUps, PlayTheBall, AveragePlayTheBallSpeed,
+      DummyHalfRuns, DummyHalfRunMetres, OneonOneSteal, Offloads,
+      DummyPasses, Passes, Receipts, PassesToRunRatio, TackleEfficiency,
+      TacklesMade, MissedTackles,IneffectiveTackles, Intercepts,
+      KicksDefused, Kicks, KickingMetres,
+      ForcedDropOuts, BombKicks, Grubbers, `40/20`, `20/40`,
+      CrossFieldKicks, KickedDead, Errors, HandlingErrors, OneonOneLost,
+      Penalties, RuckInfringements, Inside10Metres, OnReport, SinBins, SendOffs),
+    ~ as.numeric(str_replace_all(., "-", "0"))
+  )) %>%
+  mutate(TacklesMade = as.numeric(TacklesMade),
+         MissedTackles = as.numeric(MissedTackles),
+         IneffectiveTackles = as.numeric(IneffectiveTackles))
+view(NRL_PlayerStats_Joined)
+
+## Seasons & Rounds ####
+# NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
+#   mutate(Season = str_extract(URL, "(?<=/nrl-premiership/)[0-9]{4}"))
+
+NRL_PlayerStats_Joined %>%
+  group_by(URL) %>%
+  count() %>%
+  print(n = 828)
 
 NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
   mutate(Team = str_replace_all(Team, "Wests ", "")) %>%
@@ -604,70 +582,9 @@ finals_opponents_2024 <- rep(finals_teams_2024,each = 18)
 
 NRL_PlayerStats_Joined$Opponent[Missing_Opponent] <- finals_opponents_2024
 
-dim(Full_Fast_NRLr)
-dim(NRL_PlayerStats_Joined)
-
-Full_Fast_NRLr %>%
-  distinct(ID,Team) %>%
-  view()
-
-NRL_PlayerStats_Joined %>%
-  distinct(ID,Team) %>%
-  view()
-
-NRL_PlayerStats_Joined %>%
-  filter(ID %in% c('2023-25-1','2023-25-2','2023-25-3','2023-25-4',
-                   '2023-25-5','2023-25-6','2023-25-7','2023-25-8',
-                   '2023-26-1')) %>%
-  view()
-
-NRL_PlayerStats_Joined %>%
-  # filter(ID %in% '2023-25-4') %>%
-  filter(Team %in% 'Tigers',Opponent %in% 'Dolphins') %>%
-  # filter(Team %in% 'Dolphins',Opponent %in% 'Tigers') %>%
-  view()
-
-Fast_NRLr_IDs <- Full_Fast_NRLr %>%
-  # select(ID) %>%
-  distinct(ID,.keep_all = FALSE) %>%
-  rename(Fast_IDs = ID)
-view(Fast_NRLr_IDs)
-
-NRL_PlayerStats_IDs <- NRL_PlayerStats_Joined %>%
-  # select(ID) %>%
-  distinct(ID,.keep_all = FALSE) %>%
-  rename(Player_IDs = ID)
-
-view(NRL_PlayerStats_IDs)
-
-IDs_Check <- inner_join(Fast_NRLr_IDs,NRL_PlayerStats_IDs)
-view(IDs_Check)
-
-IDs_Check <- full_join(Fast_NRLr_IDs, NRL_PlayerStats_IDs, by = "ID", suffix = c(".Fast", ".Stats"),
-                       relationship = "many-to-many") %>%
-  distinct(ID) %>%
-  view()
-
-# Check rows in Full_Fast_NRLr that don't have a match in NRL_PlayerStats_Joined
-NRL_Fast_NRLr_Unmatched <- anti_join(Full_Fast_NRLr, NRL_PlayerStats_Joined, by = c('ID', 'Team'))
-view(NRL_Fast_NRLr_Unmatched)
-
-NRL_Fast_NRLr_Unmatched %>%
-  distinct(ID) %>%
-  view()
-
-# Check rows in NRL_PlayerStats_Joined that don't have a match in Full_Fast_NRLr
-NRL_PlayerStats_Joined_Unmatched <- anti_join(NRL_PlayerStats_Joined, Full_Fast_NRLr, by = c('ID', 'Team'))
-NRL_PlayerStats_Joined_Unmatched %>%
-  distinct(ID) %>%
-  view()
-
-str(Full_Fast_NRLr)
-str(NRL_PlayerStats_Joined)
-
 # Creating NRL_Team_Player_Stats ####
 NRL_Team_Player_Stats <- full_join(Full_Fast_NRLr,NRL_PlayerStats_Joined,
-                               by = c('ID','Team')) %>%
+                               by = c('ID','Team','Season')) %>%
   select(-Game_Type,-TotalPoints) %>%
   rename('Team Offloads' = Offloads.x,
          'Team Errors' = Errors.x,
@@ -680,25 +597,6 @@ NRL_Team_Player_Stats <- full_join(Full_Fast_NRLr,NRL_PlayerStats_Joined,
          'Team 40/20s' = `40/20s`,
          'Team 20/40s' = `20/40s`,
          "Player Forced Drop Outs" = ForcedDropOuts)
-
-NRL_Team_Player_Stats %>%
-  distinct(ID) %>%
-  view()
-
-NRL_Team_Player_Stats_IDs <- tibble(ID = NRL_Team_Player_Stats$ID)
-final_ids_df <- tibble(ID = final_ids)
-
-# Use anti_join to find IDs in NRL_Team_Player_Stats$ID that are not in final_ids
-missing_ids <- anti_join(NRL_Team_Player_Stats_IDs, final_ids_df, by = "ID")
-view(missing_ids) # 2023-25-4
-
-NRL_Team_Player_Stats %>%
-  distinct(ID) %>%
-  count() %>%
-  view()
-  # distinct(ID,Team) %>%
-  # view()
-
 
 # Fixing Opponent ####
 opponent_mapping <- NRL_Team_Player_Stats %>%
@@ -719,10 +617,6 @@ NRL_Team_Player_Stats <- NRL_Team_Player_Stats %>%
   select(-team1, -team2) %>%
   ungroup()
 
-NRL_Team_Player_Stats %>%
-  distinct(ID) %>%
-  count()
-
 TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
   group_by(ID,Team) %>%
   mutate('Team Tries' = sum(Tries),
@@ -736,14 +630,11 @@ TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
          'Team Try Assists' = sum(TryAssists)) %>%
   select(-Correct,-Incorrect,-Awarded,-OnReport) %>%  # %>%
   # select(ID,Team,Scores,Result,Linebreaks,`Team Tries`,`Team Conversions`,
-  #        `Team Conversion Attempts`,`Team Penalties`,`Team 1pt Field Goals`,
-  #        `Team 2pt Field Goals`,`Team Line Break Assists`,`Team Try Assists`)
-# %>% distinct(ID, Team,.keep_all = TRUE)
-  ungroup() %>%
-  distinct(ID) %>%
-  count() %>%
-  view()
-View(TeamStats_PlayerStats)
+  #      `Team Conversion Attempts`,`Team Penalties`,`Team 1pt Field Goals`,
+  #      `Team 2pt Field Goals`,`Team Line Break Assists`,`Team Try Assists`) %>%
+  distinct(ID, Team,.keep_all = TRUE)
+
+names(TeamStats_PlayerStats)
 
 ## End of prep ====
 
