@@ -14,6 +14,8 @@ library(rstanarm)
 library(tidymodels)
 library(DT)
 library(readr)
+
+# renv::snapshot()
 # library(devtools)
 # uninstall("NRLfastR")
 # remove.packages('NRLfastR')
@@ -283,11 +285,12 @@ NRL_PlayerStats_Finals_Original <-
   select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
 colnames(NRL_PlayerStats_Finals_Original)
 
-
 NRL_PlayerStats_2024_Finals <-
   read_csv("C:/Users/dan.fraser/Downloads/nrl_player_stats_2024_rounds_24_to_27.csv",
            locale = locale(encoding = "UTF-8"))
 View(NRL_PlayerStats_2024_Finals)
+
+unique(NRL_PlayerStats_2024_Finals$URL)
 
 NRL_PlayerStats_2024_Finals$Player <-
   iconv(NRL_PlayerStats_2024_Finals$Player, from = "latin1", to = "UTF-8", sub = "byte")
@@ -405,6 +408,7 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
          IneffectiveTackles = as.numeric(IneffectiveTackles))
 str(NRL_PlayerStats_Joined)
 
+unique(NRL_PlayerStats_Joined$Team)
 ## Seasons & Rounds ####
 # NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
 #   mutate(Season = str_extract(URL, "(?<=/nrl-premiership/)[0-9]{4}"))
@@ -421,8 +425,8 @@ ids_34x_32 <- c("2021-1-1", "2021-1-2", "2021-1-3","2021-1-4", "2021-1-5", "2021
                 "2021-2-1","2021-2-2", "2021-2-3", "2021-2-4", "2021-2-5","2021-2-6", "2021-2-7", "2021-2-8",
                 "2021-3-1","2021-3-2", "2021-3-3", "2021-3-4", "2021-3-5", "2021-3-6", "2021-3-7", "2021-3-8",
                 "2021-4-1","2021-4-2", "2021-4-3", "2021-4-4", "2021-4-5", "2021-4-6", "2021-4-7", "2021-4-8")
-
-ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021-5-6", "2021-5-7", "2021-5-8",
+# 32*34 + 796*36
+ids_36_796 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021-5-6", "2021-5-7", "2021-5-8",
                 "2021-6-1","2021-6-2", "2021-6-3", "2021-6-4", "2021-6-5", "2021-6-6", "2021-6-7","2021-6-8",
                 "2021-7-1","2021-7-2", "2021-7-3", "2021-7-4", "2021-7-5", "2021-7-6", "2021-7-7","2021-7-8",
                 "2021-8-1","2021-8-2", "2021-8-3", "2021-8-4", "2021-8-5", "2021-8-6", "2021-8-7","2021-8-8",
@@ -438,7 +442,7 @@ ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
                 "2021-18-1","2021-18-2","2021-18-3","2021-18-4","2021-18-5","2021-18-6","2021-18-7","2021-18-8",
                 "2021-19-1","2021-19-2","2021-19-3","2021-19-4","2021-19-5","2021-19-6","2021-19-7","2021-19-8",
                 "2021-20-1","2021-20-2","2021-20-3","2021-20-4","2021-20-5","2021-20-6","2021-20-7","2021-20-8",
-                "2021-25-1","2021-25-2","2021-25-3","2021-25-4","2021-25-5","2021-25-6","2021-25-7","2021-25-8",
+                "2021-21-1","2021-21-2","2021-21-3","2021-21-4","2021-21-5","2021-21-6","2021-21-7","2021-21-8",
                 "2021-22-1","2021-22-2","2021-22-3","2021-22-4","2021-22-5","2021-22-6","2021-22-7","2021-22-8",
                 "2021-23-1","2021-23-2","2021-23-3","2021-23-4","2021-23-5","2021-23-6","2021-23-7","2021-23-8",
                 "2021-24-1","2021-24-2","2021-24-3","2021-24-4","2021-24-5","2021-24-6","2021-24-7","2021-24-8",
@@ -463,7 +467,7 @@ ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
                 "2022-18-1","2022-18-2","2022-18-3","2022-18-4","2022-18-5","2022-18-6","2022-18-7","2022-18-8",
                 "2022-19-1","2022-19-2","2022-19-3","2022-19-4","2022-19-5","2022-19-6","2022-19-7","2022-19-8",
                 "2022-20-1","2022-20-2","2022-20-3","2022-20-4","2022-20-5","2022-20-6","2022-20-7","2022-20-8",
-                "2022-25-1","2022-25-2","2022-25-3","2022-25-4","2022-25-5","2022-25-6","2022-25-7","2022-25-8",
+                "2022-21-1","2022-21-2","2022-21-3","2022-21-4","2022-21-5","2022-21-6","2022-21-7","2022-21-8",
                 "2022-22-1","2022-22-2","2022-22-3","2022-22-4","2022-22-5","2022-22-6","2022-22-7","2022-22-8",
                 "2022-23-1","2022-23-2","2022-23-3","2022-23-4","2022-23-5","2022-23-6","2022-23-7","2022-23-8",
                 "2022-24-1","2022-24-2","2022-24-3","2022-24-4","2022-24-5","2022-24-6","2022-24-7","2022-24-8",
@@ -488,11 +492,11 @@ ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
                 "2023-18-1","2023-18-2","2023-18-3","2023-18-4","2023-18-5","2023-18-6","2023-18-7","2023-18-8",
                 "2023-19-1","2023-19-2","2023-19-3","2023-19-4","2023-19-5",
                 "2023-20-1","2023-20-2","2023-20-3","2023-20-4","2023-20-5","2023-20-6","2023-20-7",
-                "2023-25-1","2023-25-2","2023-25-3","2023-25-4","2023-25-5","2023-25-6","2023-25-7","2023-25-8",
+                "2023-21-1","2023-21-2","2023-21-3","2023-21-4","2023-21-5","2023-21-6","2023-21-7","2023-21-8",
                 "2023-22-1","2023-22-2","2023-22-3","2023-22-4","2023-22-5","2023-22-6","2023-22-7","2023-22-8",
                 "2023-23-1","2023-23-2","2023-23-3","2023-23-4","2023-23-5","2023-23-6","2023-23-7","2023-23-8",
                 "2023-24-1","2023-24-2","2023-24-3","2023-24-4","2023-24-5","2023-24-6","2023-24-7","2023-24-8",
-                "2023-25-1","2023-25-2","2023-25-3","2023-25-5","2023-25-6","2023-25-7","2023-25-8",
+                "2023-25-1","2023-25-2","2023-25-3","2023-25-4","2023-25-5","2023-25-6","2023-25-7","2023-25-8", # "2023-25-4"
                 "2023-26-1","2023-26-2","2023-26-3","2023-26-4","2023-26-5","2023-26-6","2023-26-7","2023-26-8",
                 "2023-27-1","2023-27-2","2023-27-3","2023-27-4","2023-27-5","2023-27-6","2023-27-7","2023-27-8",
                 "2024-1-1","2024-1-2","2024-1-3","2024-1-4","2024-1-5","2024-1-6","2024-1-7","2024-1-8",
@@ -515,7 +519,7 @@ ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
                 "2024-18-1","2024-18-2","2024-18-3","2024-18-4","2024-18-5","2024-18-6","2024-18-7","2024-18-8",
                 "2024-19-1","2024-19-2","2024-19-3","2024-19-4","2024-19-5",
                 "2024-20-1","2024-20-2","2024-20-3","2024-20-4","2024-20-5","2024-20-6","2024-20-7","2024-20-8",
-                "2024-25-1","2024-25-2","2024-25-3","2024-25-4","2024-25-5","2024-25-6","2024-25-7","2024-25-8",
+                "2024-21-1","2024-21-2","2024-21-3","2024-21-4","2024-21-5","2024-21-6","2024-21-7","2024-21-8",
                 "2024-22-1","2024-22-2","2024-22-3","2024-22-4","2024-22-5","2024-22-6","2024-22-7","2024-22-8",
                 "2024-23-1","2024-23-2","2024-23-3","2024-23-4","2024-23-5","2024-23-6","2024-23-7","2024-23-8",
                 "2021-26-1","2021-26-2","2021-26-3","2021-26-4",
@@ -533,17 +537,51 @@ ids_36_755 <- c("2021-5-1","2021-5-2", "2021-5-3", "2021-5-4", "2021-5-5", "2021
               "2024-29-1","2024-29-2","2024-30-1","2024-30-2","2024-31-1"
               )
 
+unique(ids_36_796)
+ids_34x_32
 # Use rep to repeat IDs
 repeated_ids_34x_32 <- rep(ids_34x_32, each = 34)
-repeated_ids_36_755 <- rep(ids_36_755, each = 36)
+repeated_ids_36_796 <- rep(ids_36_796, each = 36)
+
+NRL_PlayerStats_Joined %>%
+  filter(Season %in% '2024') %>%
+  view()
+
+NRL_PlayerStats_Joined %>%
+  filter(ID %in% '2024-1-1') %>%
+  view()
 
 nrow(NRL_PlayerStats_Joined)
 # Combine all into a single list
-final_ids <- c(repeated_ids_34x_32, repeated_ids_36_755)
+final_ids <- c(repeated_ids_34x_32, repeated_ids_36_796)
 final_ids
 
+all_ids <- unique(final_ids)
+
+duplicates <- all_ids[duplicated(all_ids)]
+if (length(duplicates) > 0) {
+  print(paste("Duplicate IDs found:", paste(duplicates, collapse = ", ")))
+} else {
+  print("No duplicate IDs found.")
+}
+
+unique(final_ids)
+
+seasons <- substr(all_ids, 1, 4)
+seasons
+season_counts <- table(seasons)
+
+# Print counts per season
+print(season_counts)
+
+ids_2024 <- grep("^2024", all_ids, value = TRUE)
+view(ids_2024)
+# Check the number of IDs for 2024
+length(ids_2024) # Should return 214
+
 NRL_PlayerStats_Joined$ID <- final_ids
-view(NRL_PlayerStats_Joined)
+nrow(NRL_PlayerStats_Joined)
+unique(NRL_PlayerStats_Joined$URL)
 #
 # colnames(Full_Fast_NRLr)
 # colnames(NRL_PlayerStats_Joined)
@@ -557,6 +595,7 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
 ## Adding missing opponents for 2024 finals games ####
 
 Missing_Opponent <- which(is.na(NRL_PlayerStats_Joined$Opponent))
+Missing_Opponent
 
 finals_teams_2024 <- c("Roosters","Panthers","Sharks","Storm","Knights","Cowboys","Sea Eagles","Bulldogs",
                        "Cowboys","Sharks","Sea Eagles","Roosters","Roosters","Storm","Sharks","Panthers",
@@ -565,12 +604,70 @@ finals_opponents_2024 <- rep(finals_teams_2024,each = 18)
 
 NRL_PlayerStats_Joined$Opponent[Missing_Opponent] <- finals_opponents_2024
 
-colnames(Full_Fast_NRLr)
-names(NRL_PlayerStats_Joined)
+dim(Full_Fast_NRLr)
+dim(NRL_PlayerStats_Joined)
+
+Full_Fast_NRLr %>%
+  distinct(ID,Team) %>%
+  view()
+
+NRL_PlayerStats_Joined %>%
+  distinct(ID,Team) %>%
+  view()
+
+NRL_PlayerStats_Joined %>%
+  filter(ID %in% c('2023-25-1','2023-25-2','2023-25-3','2023-25-4',
+                   '2023-25-5','2023-25-6','2023-25-7','2023-25-8',
+                   '2023-26-1')) %>%
+  view()
+
+NRL_PlayerStats_Joined %>%
+  # filter(ID %in% '2023-25-4') %>%
+  filter(Team %in% 'Tigers',Opponent %in% 'Dolphins') %>%
+  # filter(Team %in% 'Dolphins',Opponent %in% 'Tigers') %>%
+  view()
+
+Fast_NRLr_IDs <- Full_Fast_NRLr %>%
+  # select(ID) %>%
+  distinct(ID,.keep_all = FALSE) %>%
+  rename(Fast_IDs = ID)
+view(Fast_NRLr_IDs)
+
+NRL_PlayerStats_IDs <- NRL_PlayerStats_Joined %>%
+  # select(ID) %>%
+  distinct(ID,.keep_all = FALSE) %>%
+  rename(Player_IDs = ID)
+
+view(NRL_PlayerStats_IDs)
+
+IDs_Check <- inner_join(Fast_NRLr_IDs,NRL_PlayerStats_IDs)
+view(IDs_Check)
+
+IDs_Check <- full_join(Fast_NRLr_IDs, NRL_PlayerStats_IDs, by = "ID", suffix = c(".Fast", ".Stats"),
+                       relationship = "many-to-many") %>%
+  distinct(ID) %>%
+  view()
+
+# Check rows in Full_Fast_NRLr that don't have a match in NRL_PlayerStats_Joined
+NRL_Fast_NRLr_Unmatched <- anti_join(Full_Fast_NRLr, NRL_PlayerStats_Joined, by = c('ID', 'Team'))
+view(NRL_Fast_NRLr_Unmatched)
+
+NRL_Fast_NRLr_Unmatched %>%
+  distinct(ID) %>%
+  view()
+
+# Check rows in NRL_PlayerStats_Joined that don't have a match in Full_Fast_NRLr
+NRL_PlayerStats_Joined_Unmatched <- anti_join(NRL_PlayerStats_Joined, Full_Fast_NRLr, by = c('ID', 'Team'))
+NRL_PlayerStats_Joined_Unmatched %>%
+  distinct(ID) %>%
+  view()
+
+str(Full_Fast_NRLr)
+str(NRL_PlayerStats_Joined)
 
 # Creating NRL_Team_Player_Stats ####
-NRL_Team_Player_Stats <- merge(Full_Fast_NRLr,NRL_PlayerStats_Joined,
-                               by = c('ID','Team','Season')) %>%
+NRL_Team_Player_Stats <- full_join(Full_Fast_NRLr,NRL_PlayerStats_Joined,
+                               by = c('ID','Team')) %>%
   select(-Game_Type,-TotalPoints) %>%
   rename('Team Offloads' = Offloads.x,
          'Team Errors' = Errors.x,
@@ -584,7 +681,24 @@ NRL_Team_Player_Stats <- merge(Full_Fast_NRLr,NRL_PlayerStats_Joined,
          'Team 20/40s' = `20/40s`,
          "Player Forced Drop Outs" = ForcedDropOuts)
 
-View(NRL_Team_Player_Stats)
+NRL_Team_Player_Stats %>%
+  distinct(ID) %>%
+  view()
+
+NRL_Team_Player_Stats_IDs <- tibble(ID = NRL_Team_Player_Stats$ID)
+final_ids_df <- tibble(ID = final_ids)
+
+# Use anti_join to find IDs in NRL_Team_Player_Stats$ID that are not in final_ids
+missing_ids <- anti_join(NRL_Team_Player_Stats_IDs, final_ids_df, by = "ID")
+view(missing_ids) # 2023-25-4
+
+NRL_Team_Player_Stats %>%
+  distinct(ID) %>%
+  count() %>%
+  view()
+  # distinct(ID,Team) %>%
+  # view()
+
 
 # Fixing Opponent ####
 opponent_mapping <- NRL_Team_Player_Stats %>%
@@ -605,6 +719,10 @@ NRL_Team_Player_Stats <- NRL_Team_Player_Stats %>%
   select(-team1, -team2) %>%
   ungroup()
 
+NRL_Team_Player_Stats %>%
+  distinct(ID) %>%
+  count()
+
 TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
   group_by(ID,Team) %>%
   mutate('Team Tries' = sum(Tries),
@@ -613,13 +731,18 @@ TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
          'Team Penalties' = sum(PenaltyGoals),
          'Team 1pt Field Goals' = sum(`1PointFieldGoals`),
          'Team 2pt Field Goals' = sum(`2PointFieldGoals`),
+         # 'Team LineBreaks' = sum(Linebreaks),
          'Team Line Break Assists' = sum(LineBreakAssists),
          'Team Try Assists' = sum(TryAssists)) %>%
-  select(-Correct,-Incorrect,-Awarded,-OnReport) # %>%
+  select(-Correct,-Incorrect,-Awarded,-OnReport) %>%  # %>%
   # select(ID,Team,Scores,Result,Linebreaks,`Team Tries`,`Team Conversions`,
   #        `Team Conversion Attempts`,`Team Penalties`,`Team 1pt Field Goals`,
   #        `Team 2pt Field Goals`,`Team Line Break Assists`,`Team Try Assists`)
 # %>% distinct(ID, Team,.keep_all = TRUE)
+  ungroup() %>%
+  distinct(ID) %>%
+  count() %>%
+  view()
 View(TeamStats_PlayerStats)
 
 ## End of prep ====
@@ -646,7 +769,12 @@ TeamStats_PlayerStats %>%
          "Tackled In Opp 20", "In Goal Escapes","Tackles",
          "Missed Tackles","Team Errors", "Penalties Conceded","Team Kicks","Kick Metres","Team 40/20s",
          "Team 20/40s","Attacking Kicks" ,"Drop Outs","Forced Drop Outs",
-         "Kicks Dead",  "Completion Difference","Score Against","Season","Game Type","URL")) %>%
+         "Kicks Dead",  "Completion Difference","Score Against","Season","Game Type","URL",
+         "StintOne","StintTwo", "Opponent", "MinsPlayed")) %>%
+  relocate(`Team Tries`,.after = Team) %>%
+  relocate(`Team Try Assists`,.after = `Team Tries`) %>%
+  relocate(LineBreaks,.after = `Team Try Assists`) %>%
+  relocate(`Team Line Break Assists`,.after = LineBreaks) %>%
   view()
 
 # Use this or variations of this below to calculate rate of unassisted tries (ie no assist)
@@ -672,6 +800,45 @@ TeamStats_PlayerStats %>%
             "Missed Tackles","Team Errors", "Penalties Conceded","Team Kicks","Kick Metres","Team 40/20s",
             "Team 20/40s","Attacking Kicks" ,"Drop Outs","Forced Drop Outs",
             "Kicks Dead",  "Completion Difference","Score Against","Season","Game Type","URL")) %>%
+  view()
+
+# Use this or variations of this below to calculate rate of unassisted tries (ie no assist)
+# and those try assists via kicks where there is no line break assist
+
+# Where team has more `Team Tries` than `Team Try Assists`, there has been an unassisted try
+
+
+TeamStats_PlayerStats %>%
+  mutate(Unassisted_Tries = `Team Tries` - `Team Try Assists`,
+         Potential_Kick_Assists = `Team Try Assists` - `Team Line Break Assists`) %>%
+  # filter(`Team Try Assists` > `Team Line Break Assists`) %>%
+  distinct(ID,Team,.keep_all = TRUE) %>%
+  select(-c("LineEngagedRuns", "TackleBreaks", "HitUps", "PlayTheBall", "AveragePlayTheBallSpeed",
+            "DummyHalfRuns", "DummyHalfRunMetres", "OneonOneSteal", "Player Offloads", "DummyPasses", "Passes",
+            "Receipts",  "PassesToRunRatio",  "TackleEfficiency", "TacklesMade",
+            "MissedTackles",  "IneffectiveTackles", "KicksDefused" ,
+            "Player Kicks", "KickingMetres", "Player Forced Drop Outs","BombKicks",
+            "Grubbers", "Player 40/20s","Player 20/40s", "CrossFieldKicks",
+            "KickedDead", "Player Errors","HandlingErrors","OneonOneLost",
+            "Penalties","RuckInfringements","Inside10Metres",
+            "SinBins", "SendOffs", "AllRuns", "AllRunMetres", "KickReturnMetres", "PostContactMetres",
+            "Completion Difference", "Score Against","Average Metres Per Run",
+            "Average Metres Per Run Conceded", "Line breaks conceded", "Run metres conceded", "Total runs",
+            "Average run difference", "Line break rate", "Line break differential", "Run metre differential",
+            "Possession", "Territory", "Runs",
+            "Run Metres", "Dummy Half Runs", "Tackle Busts","Post Contact Metres",
+            "Team Offloads", "Linebreaks","20m Restarts", "Completion Rate",
+            "Tackled In Opp 20", "In Goal Escapes","Tackles",
+            "Missed Tackles","Team Errors", "Penalties Conceded","Team Kicks","Kick Metres","Team 40/20s",
+            "Team 20/40s","Attacking Kicks" ,"Drop Outs","Forced Drop Outs",
+            "Kicks Dead",  "Completion Difference","Score Against","Season","Game Type","URL")) %>%
+  ungroup() %>%
+  distinct(ID) %>%
+  count() %>%
+  view()
+
+TeamStats_PlayerStats %>%
+  filter(ID %in% '2021-1-6',Team %in% 'Panthers') %>%
   view()
 
 # Create 0 & 1 results in Fast_NRLr_long for Logistic Regression
@@ -983,6 +1150,12 @@ Full_Fast_NRLr %>%
 
 Full_Fast_NRLr %>%
   filter(`Line break differential` > 0 & `Completion Difference` > 0) %>%
+  count(Result) %>%
+  mutate(Percentage = round(n / sum(n) * 100,2)) %>%
+  view()
+
+Full_Fast_NRLr %>%
+  filter(`Line break differential` > 0 & `Completion Difference` > 0 & `Run metre differential` > 0) %>%
   count(Result) %>%
   mutate(Percentage = round(n / sum(n) * 100,2)) %>%
   view()
