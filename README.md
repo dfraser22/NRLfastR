@@ -1,6 +1,6 @@
 # Team Stats 
 
-Three xlsx files (nrl_all_match_stats_2021_2024_wide.xlsx, nrl_all_match_stats_2024_wide.xlsx & nrl_match_stats_specific_urls.xlsx 
+Three xlsx files (nrl_all_match_stats_2021_2024_wide.xlsx, nrl_all_match_stats_2024_wide.xlsx & nrl_match_stats_specific_urls.xlsx) 
 have been scrapped from foxsports.com.au (see NRL_Games_Scraping.py in NRLscraping repo for code that has nrl_all_match_stats_2021_2024_wide.xlsx output).
 
 nrl_all_match_stats_2024_wide.xlsx is for round 19 onwards in 2024. See NRL_Games_Scraping_24_R19on.py in this repo for code.
