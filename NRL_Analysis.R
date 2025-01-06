@@ -695,6 +695,13 @@ TeamStats_PlayerStats %>%
 
 # Use V2 below to to work out Kick Assist numbers/rate
 
+TeamStats_PlayerStats %>%
+  group_by(ID) %>%
+  summarise(Tries = sum(Tries)) %>%
+  count(Tries) # %>%
+  # summarise(Total = Tries*n) %>%
+  # summarise(Overall_Total = sum(Total,na.rm = TRUE))
+
 Assist_NRLstats <- TeamStats_PlayerStats %>%
   # mutate('Unassisted_Try' = ifelse(`Team Tries` > `Team Try Assists`,
   #                                  `Team Tries` - `Team Try Assists`,
@@ -773,12 +780,12 @@ Assist_NRLstats %>%
 # Ways to score. Line Break -> Try (LB + T). LineBreak Assist (LBA) -> Line Break(LB) -> Try (LBA, LB + TA).
 #                Line Break -> Try Assist -> Try (LB + TA + T). Try Assist (TA) -> T (TA[kick] + T)
 
-
-
 sum(Assist_NRLstats$TryAssists, na.rm = TRUE)
 sum(Assist_NRLstats$Tries, na.rm = TRUE)
 
-6549/828
+6549/823 # assuming 5 NAs
+
+6501/828
 
 leaguewide_kick_assist_rate_V2 <-
   sum(Assist_NRLstats$`Potential Kick Assist V2`,na.rm = TRUE)/sum(Assist_NRLstats$TryAssists,na.rm = TRUE)
