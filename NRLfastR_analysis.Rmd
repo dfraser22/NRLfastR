@@ -1,7 +1,6 @@
 ---
 title: "NRL analysis"
 output: html_document
-date: "2024-11-16"
 ---
 
 ```{r setup, include=FALSE}
@@ -28,19 +27,22 @@ library(DT)
 # renv::restore()
 ```
 
-Data
+All the models and insights are based off match data from foxsports.com.au for all the matches in four NRL seasons from 2021 to 2024, with a total of 828 games (201 in both 2021 and 2022, and 213 in both 2023 and 2024).
 
 ```{r data, include=FALSE}
+# Importing data
 NRL_seasons_Original <- read_xlsx("C:/Users/dan.fraser/Downloads/nrl_all_match_stats_2021_2024_wide.xlsx")
 
 NRL_Endof2024 <- read_xlsx("C:/Users/dan.fraser/Downloads/nrl_all_match_stats_2024_wide.xlsx")
 
-NRL_2021_2024 <- rbind(NRL_seasons_Original,NRL_Endof2024)
+NRL_specificurls <- read_xlsx("C:/Users/dan.fraser/Downloads/nrl_match_stats_specific_urls.xlsx") %>% 
+  mutate(ID = c('2023-25-4','2023-25-4','2024-8-2','2024-8-2'))
+
+NRL_2021_2024 <- rbind(NRL_seasons_Original,NRL_Endof2024,NRL_specificurls)
 ```
 
-### Merging data/Creating NRL_seasons
-
 ```{r NRL_seasons, include=FALSE}
+# Merging data/Creating NRL_seasons
 NRL_seasons <- NRL_2021_2024 %>% rename("Set Restarts Awarded" = Awarded) %>%
   mutate(Possession = as.numeric(gsub("%", "",Possession)),
                                       Territory = as.numeric(gsub("%", "",Territory))) %>%
@@ -58,12 +60,25 @@ NRL_seasons <- NRL_2021_2024 %>% rename("Set Restarts Awarded" = Awarded) %>%
      startsWith(ID, "2024") ~ "2024",
      startsWith(ID, "2023") ~ "2023",
      startsWith(ID, "2022") ~ "2022",
-     startsWith(ID, "2021") ~ "2021"))
+     startsWith(ID, "2021") ~ "2021")) %>% 
+  mutate('Game Type' = case_when(ID %in% c('2024-31-1','2024-30-1','2024-30-2',
+                                           "2024-29-1","2024-29-2","2024-28-1",
+                                           "2024-28-2","2024-28-3","2024-28-4",
+                                           '2023-31-1','2023-30-2','2023-30-1',
+                                           "2023-29-1","2023-29-2","2023-28-1",
+                                           "2023-28-2","2023-28-3","2023-28-4",
+                                           "2022-26-1","2022-26-2","2022-26-3",
+                                           "2022-26-4","2022-27-1","2022-27-2",
+                                           "2022-28-1","2022-28-2","2022-29-1",
+                                           "2021-26-1","2021-26-2","2021-26-3",
+                                           "2021-26-4","2021-27-1","2021-27-2",
+                                           "2021-28-1","2021-28-2","2021-29-1") ~ 'Playoff',
+                                 TRUE ~ 'Regular Season'))
 ```
 
-### Creating Full_Fast_NRLr
-
 ```{r Full_Fast_NRLr, include=FALSE}
+# Creating Full_Fast_NRLr
+
 even_indices <- seq(2, nrow(NRL_seasons), by = 2)
 odd_indices <- seq(1, nrow(NRL_seasons), by = 2)
 
@@ -71,7 +86,8 @@ odd_indices <- seq(1, nrow(NRL_seasons), by = 2)
 NRL_away_teams <- NRL_seasons[even_indices, ]
 NRL_home_teams <- NRL_seasons[odd_indices, ]
 
-Fast_NRLr <- inner_join(NRL_home_teams,NRL_away_teams,by=c('ID','Season'))
+Fast_NRLr <- inner_join(NRL_home_teams,NRL_away_teams,by=c('ID','Season','Game Type'))
+view(Fast_NRLr)
 
 New_cols <- c("ID","Home Team","Home Score",
 "Home Possession","Home Territory","Home Runs",
@@ -84,7 +100,7 @@ New_cols <- c("ID","Home Team","Home Score",
 "Home 40/20s","Home 20/40s","Home Attacking Kicks",
 "Home Drop Outs","Home Forced Drop Outs","Home Kicks Dead",
 "Home Completion Rate","Home Average Metres Per Run",
-"Season","Away Team","Away Score",
+"Season",'Game Type', "Away Team","Away Score",
 "Away Possession","Away Territory","Away Runs",
 "Away Run Metres","Away Dummy Half Runs","Away Tackle Busts",
 "Away Post Contact Metres","Away Offloads","Away Linebreaks",
@@ -94,11 +110,13 @@ New_cols <- c("ID","Home Team","Home Score",
 "Away Penalties Conceded","Away Kicks","Away Kick Metres",
 "Away 40/20s","Away 20/40s","Away Attacking Kicks",
 "Away Drop Outs","Away Forced Drop Outs","Away Kicks Dead",
-"Away Completion Rate","Away Average Metres Per Run")
+"Away Completion Rate","Away Average Metres Per Run") # "Game Type 1")
 
 colnames(Fast_NRLr) <- New_cols
+view(Fast_NRLr)
 
-Fast_NRLr <- Fast_NRLr %>% relocate("ID","Home Team","Home Score","Away Team","Away Score",
+Fast_NRLr <- Fast_NRLr %>%
+  relocate("ID","Home Team","Home Score","Away Team","Away Score",
 "Home Possession","Home Territory",
 "Away Possession","Away Territory",
 "Home Runs","Home Run Metres","Away Runs",
@@ -154,6 +172,7 @@ mutate(across(c("Home Score","Away Score","Home Possession","Home Territory",
          'Home Score Against' = `Away Score`,
          'Away Score Against' = `Home Score`) %>%
   mutate('Total runs' = `Home Runs` + `Away Runs`)
+view(Fast_NRLr)
 
 # Home and Away splits
 Away_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Away Team`,`Away Score`,`Away result`,
@@ -209,21 +228,24 @@ Full_Fast_NRLr <- rbind(Home_Fast_NRLr,Away_Fast_NRLr) %>%
   mutate(Team = str_to_title(Team))
 
 Full_Fast_NRLr <- Full_Fast_NRLr %>%
-mutate('Game Type' = case_when(ID %in% c('2023-31-1','2023-30-2','2023-30-1',
-                                         "2023-28-1","2023-28-2","2023-28-3",
-                                         "2023-28-4","2023-29-1","2023-29-2",
-                                         "2022-26-1","2022-26-2","2022-26-3",
-                                         "2022-26-4","2022-27-1","2022-27-2",
-                                         "2022-28-1","2022-28-2","2022-29-1",
-                                         "2021-26-1","2021-26-2","2021-26-3",
-                                         "2021-26-4","2021-27-1","2021-27-2",
-                                         "2021-28-1","2021-28-2","2021-29-1") ~ "Playoff",
-                               TRUE ~ 'Regular Season'))
+  mutate('Game Type' = case_when(ID %in% c('2024-31-1','2024-30-2','2024-30-1',
+                                           "2024-28-1","2024-28-2","2024-28-3",
+                                           "2024-28-4","2024-29-1","2024-29-2",
+                                           '2023-31-1','2023-30-2','2023-30-1',
+                                           "2023-28-1","2023-28-2","2023-28-3",
+                                           "2023-28-4","2023-29-1","2023-29-2",
+                                           "2022-26-1","2022-26-2","2022-26-3",
+                                           "2022-26-4","2022-27-1","2022-27-2",
+                                           "2022-28-1","2022-28-2","2022-29-1",
+                                           "2021-26-1","2021-26-2","2021-26-3",
+                                           "2021-26-4","2021-27-1","2021-27-2",
+                                           "2021-28-1","2021-28-2","2021-29-1") ~ "Playoff",
+                                 TRUE ~ 'Regular Season'))
 ```
 
-### Creating Long version of data for logistic regression
-
 ```{r Fast_NRLr_long, include=FALSE}
+# Creating Long version of data for logistic regression
+
 Fast_NRLr_long <- Fast_NRLr %>%
   pivot_longer(cols = c(`Home Score`, `Away Score`),
                names_to = "Location",
@@ -239,51 +261,110 @@ Fast_NRLr_long <- Fast_NRLr %>%
 
 ### Logistic regression
 
-```{r logistic_regression}
+```{r logistic_regression,echo=FALSE,include=FALSE}
 for_model <- glm(Fast_NRLr_long$Result~Fast_NRLr_long$Score,
              family = "binomial")
 summary(for_model)
 ```
 
-Logistic regresion plot
+The plot below shows how scoring (the x-axis value) relates to the expected probability of a team winning (the y-axis value). If you hover over the blue line, they will see the score and corresponding probability of winning.
 
-```{r logistic_regression_plot}
+For example, if a team scores 21.5 points, that would give them almost a 50% chance of winning, whereas scoring a little over 11 points would give a team almost a 105 probability of winning, and scoring 31.8 points would give a team a probability of winning of a little over 90%.
+
+```{r logistic_regression_plot,echo=FALSE}
 Log_Regression_Plot <- Fast_NRLr_long %>%
   ggplot(aes(x=Score,y=Result)) +
   geom_point() +
   stat_smooth(method = "glm",se=FALSE,
-              method.args = list(family='binomial'))
+              method.args = list(family='binomial')) +
+  labs(title = 'Logistic regression - Scores vs Result')
 ggplotly(Log_Regression_Plot)
 ```
 
-Completion difference
+## How do you win NRL games?
 
-```{r completion_difference,include=TRUE}
+Outgaining your opponents in run metres significantly increases your chances of winning.
+
+Over the 828 games, teams that had more run metres than their opponents won 652 times, or almost 79% of games.
+
+```{r run_metre_difference,include=TRUE,echo=FALSE}
+Full_Fast_NRLr %>%
+  filter(`Run metre differential` > 0) %>%
+  count(Result) %>%
+  mutate(Percentage = round(n / sum(n) * 100,2)) %>%
+  arrange(desc(Result)) %>%
+  DT::datatable(caption = 'Results for Positive Run Metre Differential',
+                options = list(dom = 't'))
+```
+
+The percentage at which you complete sets compared to an opponent, which we've called Completion Difference, significantly increases your chances of winning.
+
+Over 794 games, teams that completed its sets at a higher rate than an opponent won almost 68% of games.
+
+```{r completion_difference,include=TRUE,echo=FALSE}
+# Completion difference 
+
 Full_Fast_NRLr %>%
   filter(`Completion Difference` > 0) %>%
   count(Result) %>%
   mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
-  DT::datatable()
+  rename('Matches' = 'n') %>% 
+  arrange(desc(Result)) %>% 
+  DT::datatable(caption = 'Results for Completion Difference',
+                options = list(dom = 't'))
 ```
 
-Line break differential
+Similarly, in the 754 matches where teams broke the opposition defensive line more than an opponent, the team with the positive line break differential won more than 75% of the time.
 
-```{r LBdifferential,include=TRUE}
+```{r LBdifferential,include=TRUE,echo=FALSE}
 Full_Fast_NRLr %>%
   filter(`Line break differential` > 0) %>%
   count(Result) %>%
   mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
-  DT::datatable()
+  rename('Matches' = 'n') %>% 
+  arrange(desc(Result)) %>% 
+  DT::datatable(caption = 'Results for Line Break differential',
+                options = list(dom = 't'))
 ```
-Line break differential & Completion difference
 
-```{r LBdifferential_CompletionDifference,include=TRUE}
+In 439 games where a team had both a superior line break differential and Completion difference, they won almost 90% of the time.
+
+```{r LBdifferential_CompletionDifference,include=TRUE,echo=FALSE}
 Full_Fast_NRLr %>%
   filter(`Line break differential` > 0 & `Completion Difference` > 0) %>%
   count(Result) %>%
   mutate(Percentage = round(n / sum(n) * 100,2)) %>% 
-  DT::datatable()
+  rename('Matches' = 'n') %>% 
+  arrange(desc(Result)) %>% 
+  DT::datatable(caption = 'Results for teams with superior Line Breaks & Completions',
+                options = list(dom = 't'))
 ```
 
+## Attack correlation/regression
 
+```{r AttackCorrPlot,include=TRUE,echo=FALSE,fig.width=10}
 
+Attack <- Full_Fast_NRLr %>%
+   select(Scores,Possession,Territory,Runs,`Run Metres`,`Post Contact Metres`,
+          `Linebreaks`,`Tackle Busts`,Offloads,Errors,`Tackled In Opp 20`,
+          `Run Metres`,`Post Contact Metres`,`Completion Rate`,
+          `Completion Difference`,`Average Metres Per Run`,
+          `Average run difference`) %>%
+   cor(use = "complete.obs") 
+ggcorrplot(Attack,lab = TRUE,
+           lab_size = 3,title = 'Attack Correlation Matrix')
+```
+
+## Defence Correlation Matrix
+
+```{r DefenceCorrPlot,include=TRUE,echo=FALSE, fig.width=10}
+
+Defence <- Full_Fast_NRLr %>%
+  select(`Score Against`,Possession,Territory,Tackles,`Missed Tackles`,
+         Errors,`Penalties Conceded`,`Completion Rate`,
+         `Completion Difference`,`Average Metres Per Run Conceded`,
+         `Line breaks conceded`) %>%
+  cor(use = "complete.obs")
+ggcorrplot(Defence,lab = TRUE,
+           lab_size = 3,title = 'Defence Correlation Matrix')
+```
