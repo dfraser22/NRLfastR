@@ -14,15 +14,20 @@ library(rstanarm)
 library(tidymodels)
 library(DT)
 library(readr)
+library(readxl)
 
 # renv::snapshot()
+
 # library(devtools)
 # uninstall("NRLfastR")
 # remove.packages('NRLfastR')
 # install("C:/Users/dan.fraser/Documents/NRLfastR", force = TRUE)
 # library(NRLfastR)
 
-# Kick % correlation to winning
+# Do the markdown file, work on expected points model & add to markdown
+# Add assist breakdowns to markdown. Line breaks regression
+# Scrape player data (DOB, weight, height)
+
 # Way of analysing risk taking (errors) vs line breaks
 # Percentage of try assists that are kicks vs passes
 # tree based models
@@ -31,7 +36,7 @@ library(readr)
 # Research vip function
 
 # What wins NRL games? +/- on run metres. Total runs per game is normally distributed.
-# Can I set the data up as Variables scored ----> Variables conceded ---->
+# Can I set the data up as Variables scored ---<- Variables conceded ---<-
 # Tackle busts as indicator of line breaks?
 
 # Loading data/cleaning ####
@@ -51,6 +56,8 @@ NRL_seasons <- NRL_2021_2024 %>% rename("Set Restarts Awarded" = Awarded) %>%
   separate(`Completion Rate`, into = c("numerator", "denominator"), sep = "/", convert = TRUE) %>%
   mutate(`Completion Rate %` = round(numerator / denominator,2) * 100,
           Average_Metres_Per_Run = round(as.numeric(`Run Metres`)/as.numeric(Runs),2)) %>%
+  mutate(Completed_Sets = numerator,
+         'Sets/Possessions' = denominator) %>%
   select(-numerator, -denominator) %>%
   mutate(across(c("Scores","Possession","Territory","Runs",
                   "Run Metres","Dummy Half Runs","Tackle Busts","Post Contact Metres","Offloads","Linebreaks",
@@ -98,6 +105,7 @@ New_cols <- c("ID","Home Team","Home Score",
 "Home 40/20s","Home 20/40s","Home Attacking Kicks",
 "Home Drop Outs","Home Forced Drop Outs","Home Kicks Dead",
 "Home Completion Rate","Home Average Metres Per Run",
+'Home Completed Sets', 'Home Sets/Possessions',
 "Season",'Game Type', "Away Team","Away Score",
 "Away Possession","Away Territory","Away Runs",
 "Away Run Metres","Away Dummy Half Runs","Away Tackle Busts",
@@ -108,7 +116,8 @@ New_cols <- c("ID","Home Team","Home Score",
 "Away Penalties Conceded","Away Kicks","Away Kick Metres",
 "Away 40/20s","Away 20/40s","Away Attacking Kicks",
 "Away Drop Outs","Away Forced Drop Outs","Away Kicks Dead",
-"Away Completion Rate","Away Average Metres Per Run") # "Game Type 1")
+"Away Completion Rate","Away Average Metres Per Run",
+'Away Completed Sets', 'Away Sets/Possessions') # "Game Type 1")
 
 colnames(Fast_NRLr) <- New_cols
 
@@ -123,7 +132,9 @@ Fast_NRLr <- Fast_NRLr %>%
 "Away Average Metres Per Run","Home Offloads","Away Offloads",
 "Home Linebreaks","Away Linebreaks",
 "Home 20m Restarts","Away 20m Restarts","Home Completion Rate",
-"Away Completion Rate","Home Tackled In Opp 20","Away Tackled In Opp 20",
+"Away Completion Rate",'Home Completed Sets','Away Completed Sets',
+'Home Sets/Possessions','Away Sets/Possessions',
+"Home Tackled In Opp 20","Away Tackled In Opp 20",
 "Home In Goal Escapes","Away In Goal Escapes","Home Awarded Set Restarts","Away Awarded Set Restarts",
 "Home Tackles", "Away Tackles","Home Missed Tackles",
 "Away Missed Tackles","Home Correct Reviews","Home Incorrect Reviews",
@@ -156,7 +167,9 @@ mutate(across(c("Home Score","Away Score","Home Possession","Home Territory",
                 "Home Attacking Kicks","Away Attacking Kicks","Home Drop Outs",
                 "Away Drop Outs","Home Forced Drop Outs","Away Forced Drop Outs",
                 "Home Kicks Dead","Away Kicks Dead",
-                "Home Average Metres Per Run","Away Average Metres Per Run"),
+                "Home Average Metres Per Run","Away Average Metres Per Run",
+                'Home Completed Sets','Away Completed Sets',
+                'Home Sets/Possessions','Away Sets/Possessions'),
                  ~ as.numeric(.))) %>%
   mutate('Home result' = case_when(as.numeric(as.character(`Home Score`)) > `Away Score` ~ 'W',
                                    `Home Score` == `Away Score` ~ 'D',
@@ -172,16 +185,16 @@ mutate(across(c("Home Score","Away Score","Home Possession","Home Territory",
          'Away Margin' = `Away Score` - `Home Score`
          ) %>%
   mutate('Total runs' = `Home Runs` + `Away Runs`)
-# view(Fast_NRLr)
-
-View(Full_Fast_NRLr)
+View(Fast_NRLr)
 
 # Home and Away splits
 Away_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Away Team`,`Away Score`,`Away result`,`Away Margin`,
                                        `Away Possession`,`Away Territory`,`Away Runs`,
                                        `Away Run Metres`,`Away Dummy Half Runs`,`Away Tackle Busts`,
                                        `Away Post Contact Metres`,`Away Offloads`,`Away Linebreaks`,
-                                       `Away 20m Restarts`,`Away Completion Rate`,`Away Tackled In Opp 20`,
+                                       `Away 20m Restarts`,`Away Completion Rate`,
+                                       `Away Completed Sets`,`Away Sets/Possessions`,
+                                       `Away Tackled In Opp 20`,
                                        `Away In Goal Escapes`,`Away Awarded Set Restarts`,`Away Tackles`,
                                        `Away Missed Tackles`,`Away Correct Reviews`,`Away Incorrect Reviews`,
                                        `Away Errors`,`Away Penalties Conceded`,`Away Kicks`,
@@ -199,7 +212,8 @@ Home_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Home Team`,`Home Score`,`Home 
                                        `Home Possession`,`Home Territory`,`Home Runs`,
                                        `Home Run Metres`,`Home Dummy Half Runs`,`Home Tackle Busts`,
                                        `Home Post Contact Metres`,`Home Offloads`,`Home Linebreaks`,
-                                       `Home 20m Restarts`,`Home Completion Rate`,`Home Tackled In Opp 20`,
+                                       `Home 20m Restarts`,`Home Completion Rate`,
+                                       `Home Completed Sets`,`Home Sets/Possessions`,`Home Tackled In Opp 20`,
                                        `Home In Goal Escapes`,`Home Awarded Set Restarts`,`Home Tackles`,
                                        `Home Missed Tackles`,`Home Correct Reviews`,`Home Incorrect Reviews`,
                                        `Home Errors`,`Home Penalties Conceded`,`Home Kicks`,
@@ -217,6 +231,7 @@ Home_Fast_NRLr <- Fast_NRLr %>% select(ID,Season,`Home Team`,`Home Score`,`Home 
 Full_colnames <- c("ID","Season","Team","Scores","Result","Margin","Possession",
                    "Territory","Runs","Run Metres","Dummy Half Runs","Tackle Busts",
                    "Post Contact Metres","Offloads","Linebreaks","20m Restarts","Completion Rate",
+                   "Away Completed Sets","Away Sets/Possessions",
                    "Tackled In Opp 20","In Goal Escapes",
                    "Awarded","Tackles","Missed Tackles","Correct","Incorrect","Errors","Penalties Conceded",
                    "Kicks","Kick Metres","40/20s","20/40s","Attacking Kicks","Drop Outs",
@@ -231,7 +246,7 @@ colnames(Away_Fast_NRLr) <- Full_colnames
 # Creating Full_Fast_NRLr ####
 Full_Fast_NRLr <- rbind(Home_Fast_NRLr,Away_Fast_NRLr) %>%
   mutate(Team = str_to_title(Team))
-# view(Full_Fast_NRLr)
+View(Full_Fast_NRLr)
 
 Full_Fast_NRLr <- Full_Fast_NRLr %>%
   mutate('Game Type' = case_when(ID %in% c('2024-31-1','2024-30-2','2024-30-1',
@@ -247,6 +262,12 @@ Full_Fast_NRLr <- Full_Fast_NRLr %>%
                                            "2021-26-4","2021-27-1","2021-27-2",
                                            "2021-28-1","2021-28-2","2021-29-1") ~ "Playoff",
                                  TRUE ~ 'Regular Season'))
+
+getwd()
+MatchDates <- read.csv('PlayersWithDOBs.csv')
+
+# df_with_na <- Full_Fast_NRLr[apply(Full_Fast_NRLr, 1, function(x) any(is.na(x))), ]
+# View(df_with_na)
 
 # NRL ladders 2015-2024 ####
 NRL_ladders_1524 <- "NRLladders2015-2024.xlsx"
@@ -279,6 +300,7 @@ NRL_MergedSeasons <- do.call(rbind, NRL_seasons[order(names(NRL_seasons))]) %>%
 NRL_PlayerStats <-
   read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_player_stats_with_urls.xlsx") %>%
   select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
+View(NRL_PlayerStats)
 unique(NRL_PlayerStats$URL) # 760
 
 NRL_PlayerStats_ids_34x_32 <- c("2021-1-1", "2021-1-2", "2021-1-3","2021-1-4", "2021-1-5", "2021-1-6", "2021-1-7", "2021-1-8",
@@ -393,6 +415,11 @@ NRL_PlayerStats_final_ids <- c(Repeated_NRL_PlayerStats_ids_34x_32, Repeated_NRL
 length(NRL_PlayerStats_final_ids)
 
 NRL_PlayerStats$ID <- NRL_PlayerStats_final_ids
+View(NRL_PlayerStats)
+
+# NRL_PlayerStats %>%
+#   filter(ID %in% '2021-18-3') %>%
+#   View()
 
 NRL_PlayerStats_Finals_Original <-
   read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_finals_player_stats_with_urls.xlsx") %>%
@@ -485,8 +512,28 @@ team_mapping <- c(
   "dolphins" = "Dolphins"
 )
 
+unique(NRL_PlayerStats_JoinedOriginal$Player)
+
+NRL_PlayerStats_JoinedOriginal %>%
+  filter(Player %in% 'Jake Averillo') %>%
+  View()
+
 # "IzaacTu\u0092itupou Thompson" "mesTedesco" "Gordon ChanKumTong"  "Tevita PangaiJunior"
 # "De LaSalleVa'a"   "Tallyn DaSilva"    "Te  MaireMartin" "Joseph- AukusoSuaalii"
+# Jack deBelin -> Jack de Belin
+# Jacob Alick -> Jacob Alick-Wiencke
+# Jaydn Su'a -> Jaydn Su'A
+# Joshua Schuster -> Josh Schuster
+# Liam LeBlanc -> Liam Le Blanc
+# Mosese Suli -> Moses Suli
+# Sione Fainu -> Sione Finau
+# Benjamin TeKura -> Benjamin Te Kura
+# Dale FinucaneCameron McInnes
+# Jake AverilloJacob Laban
+# Jaylan DeGroot -> Jaylan De Groot
+# Dale FinucaneCameron McInnes
+# Jake AverilloJacob Laban
+
 NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
   mutate(Player = case_when(
     Player %in% c("TeMaireMartin", "AJBrimson",
@@ -497,7 +544,7 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
                   "Gordon ChanKumTong", "Tevita PangaiJunior",
                   "De LaSalleVa'a", "Tallyn DaSilva",
                   "Te  MaireMartin", "Joseph- AukusoSuaalii") ~ Player,
-    TRUE ~ str_replace(Player, "(?<!^)([A-Z])", " \\1")
+    TRUE ~ str_replace(Player, "(?<!^)([A-Z])", " \\1") # Adds spaces between capital letters
   )) %>%
   mutate(Player = str_replace(Player, "TeMaireMartin", "Te Maire Martin"),
          Player = str_replace(Player, "AJBrimson", "AJ Brimson"),
@@ -514,7 +561,16 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
          Player = str_replace(Player, "IzaacTu\u0092itupouThompson", "Izaac Tu’itupou Thompson"),
          Player = str_replace(Player, "Tallyn DaSilva", "Tallyn Da Silva"),
          Player = str_replace(Player, "Te  MaireMartin", "Te Maire Martin"),
-         Player = str_replace(Player, "Tevita PangaiJunior", "Tevita Pangai Junior")
+         Player = str_replace(Player, "Jack deBelin", "Jack de Belin"),
+         Player = str_replace(Player, "Jacob Alick", "Tevita Pangai Junior"),
+         Player = str_replace(Player, "Jaydn Su'a", "Jaydn Su'A"),
+         Player = str_replace(Player, "Joshua Schuster", "Josh Schuster"),
+         Player = str_replace(Player, "Liam LeBlanc", "Liam Le Blanc"),
+         Player = str_replace(Player, "Mosese Suli", "Moses Suli"),
+         Player = str_replace(Player, "Sione Fainu", "Sione Finau"),
+         Player = str_replace(Player, "Benjamin TeKura", "Benjamin Te Kura"),
+         Player = str_replace(Player, "Jaylan DeGroot", "Jaylan DeGroot"),
+         Player = str_replace(Player, "Alexander Brimson", "AJ Brimson")
          ) %>%
   mutate(Season = case_when(str_detect(URL,'/2021/') ~ '2021',
                             str_detect(URL,'/2022/') ~ '2022',
@@ -546,7 +602,7 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
   mutate(TacklesMade = as.numeric(TacklesMade),
          MissedTackles = as.numeric(MissedTackles),
          IneffectiveTackles = as.numeric(IneffectiveTackles))
-# view(NRL_PlayerStats_Joined)
+view(NRL_PlayerStats_Joined)
 
 ## Seasons & Rounds ####
 # NRL_PlayerStats_Joined <- NRL_PlayerStats_Joined %>%
@@ -573,8 +629,48 @@ finals_opponents_2024 <- rep(finals_teams_2024,each = 18)
 
 NRL_PlayerStats_Joined$Opponent[Missing_Opponent] <- finals_opponents_2024
 
+# NRL_PlayerStats_Joined_NAs <- NRL_PlayerStats_Joined[apply(NRL_PlayerStats_Joined, 1, function(x) any(is.na(x))), ]
+# View(NRL_PlayerStats_Joined)
+View(NRL_PlayerStats_Joined)
+
+# Check <- Full_Fast_NRLr %>%
+#   filter(ID %in% c('2021-18-1','2021-18-2','2021-18-3','2021-18-4',
+#                    '2021-18-5','2021-18-6','2021-18-7','2021-18-8',
+#                    '2021-20-1','2021-20-2','2021-20-3','2021-20-4',
+#                    '2021-20-5','2021-20-6','2021-20-7','2021-20-8'))
+# View(Check)
+
+# NRL_PlayerStats %>%
+#   filter(ID %in% c('2021-18-1','2021-18-2','2021-18-3','2021-18-4',
+#                    '2021-18-5','2021-18-6','2021-18-7','2021-18-8',
+#                    '2021-20-1','2021-20-2','2021-20-3','2021-20-4',
+#                    '2021-20-5','2021-20-6','2021-20-7','2021-20-8')) %>%
+#   distinct(ID,Team) %>%
+#   View()
+
+# IDs for NRL_PlayerStats_Joined & Full_Fast_NRLr are mixed up. 2021-18-3, 2021-18-4, 2021-20-4, 2021-20-5 & 2021-20-6
+# 2021-20-4, 2021-20-5 & 2021-20-6 should be Knights-Raiders, Storm-Panthers & Dragons-Rabbitohs
+
+Fixed_Full_Fast_NRLr <- Full_Fast_NRLr %>%
+  mutate(ID = case_when(
+    ID == '2021-18-3' ~ '2021-18-4',
+    ID == '2021-18-4' ~ '2021-18-3',
+    ID == '2021-20-5' ~ '2021-20-4',
+    ID == '2021-20-6' ~ '2021-20-5',
+    ID == '2021-20-4' ~ '2021-20-6',
+    TRUE ~ ID  # Keep other values unchanged
+  ))
+
+Fixed_Full_Fast_NRLr %>%
+  filter(ID %in% c('2021-18-3','2021-18-4',
+                '2021-20-6','2021-20-5',
+                '2021-20-4')) %>%
+  View()
+
+Players_Check <-
+
 # Creating NRL_Team_Player_Stats ####
-NRL_Team_Player_Stats <- full_join(Full_Fast_NRLr,NRL_PlayerStats_Joined,
+NRL_Team_Player_Stats <- full_join(Fixed_Full_Fast_NRLr,NRL_PlayerStats_Joined,
                                by = c('ID','Team','Season')) %>%
   select(-Game_Type,-TotalPoints) %>%
   rename('Team Offloads' = Offloads.x,
@@ -588,6 +684,7 @@ NRL_Team_Player_Stats <- full_join(Full_Fast_NRLr,NRL_PlayerStats_Joined,
          'Team 40/20s' = `40/20s`,
          'Team 20/40s' = `20/40s`,
          "Player Forced Drop Outs" = ForcedDropOuts)
+View(NRL_Team_Player_Stats)
 
 # Fixing Opponent ####
 opponent_mapping <- NRL_Team_Player_Stats %>%
@@ -596,7 +693,7 @@ opponent_mapping <- NRL_Team_Player_Stats %>%
     team1 = unique(Team)[1],
     team2 = unique(Team)[2]
   )
-opponent_mapping
+View(opponent_mapping)
 
 NRL_Team_Player_Stats <- NRL_Team_Player_Stats %>%
   left_join(opponent_mapping, by = "ID") %>%
@@ -608,13 +705,6 @@ NRL_Team_Player_Stats <- NRL_Team_Player_Stats %>%
   select(-team1, -team2) %>%
   ungroup()
 
-view(NRL_Team_Player_Stats)
-
-NRL_Team_Player_Stats %>%
-  filter(ID == '2021-1-1',Team == 'Storm') %>%
-  view()
-
-names(NRL_Team_Player_Stats)
 TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
   group_by(ID,Team) %>%
   mutate('Team Tries' = sum(Tries),
@@ -631,10 +721,128 @@ TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
          'Player LineBreaks' = LineBreaks) %>%
   select(-Correct,-Incorrect,-Awarded,-OnReport)  # %>%
 
+# Check to see if join between Full_Fast_NRLr & TeamStats_PlayerStats worked correctly
+TeamStats_PlayerStats_na <- TeamStats_PlayerStats[apply(TeamStats_PlayerStats, 1, function(x) any(is.na(x))), ]
+View(TeamStats_PlayerStats_na)
+
+unique(NRL_PlayerStats_Joined$Player)
+TeamStats_PlayerStats %>%
+  filter(is.na(Player))
+
+# Player Names/Ages ====
+
+Player_details <-
+  readxl::read_xlsx('player_details.xlsx')
+
+Player_details_2 <-
+  readxl::read_xlsx('player_details_2.xlsx')
+
+Player_details_3 <-
+  readxl::read_xlsx('player_details_3.xlsx')
+
+Player_details_4 <-
+  readxl::read_xlsx('player_details_4.xlsx')
+
+Player_details_5 <-
+  readxl::read_xlsx('player_details_5.xlsx')
+
+Player_details_6 <-
+  readxl::read_xlsx('player_details_6.xlsx')
+
+Player_details_7 <-
+  readxl::read_xlsx('player_details_7.xlsx')
+
+Player_details_8 <-
+  readxl::read_xlsx('player_details_8.xlsx')
+
+Player_details_9 <-
+  readxl::read_xlsx('player_details_9.xlsx')
+
+Player_details_10 <-
+  readxl::read_xlsx('player_details_10.xlsx')
+
+Player_details_11 <-
+  readxl::read_xlsx('player_details_11.xlsx')
+
+Player_details_12 <-
+  readxl::read_xlsx('player_details_12.xlsx')
+View(Player_details)
+
+Players_Data_Raw <-
+  rbind(Player_details,Player_details_2,Player_details_3,
+        Player_details_4,Player_details_5,Player_details_6,
+        Player_details_7,Player_details_8,Player_details_9,
+        Player_details_10,Player_details_11,Player_details_12) %>%
+  rename('Debut Date' = Date) %>%
+  # na_if("-") %>%
+  # {as.Date(., format = "%d %B %Y")})
+  mutate('Date of Birth' = as.Date(`Date of Birth`, "%d %B %Y"),
+         'Debut Date' = as.Date(`Debut Date`,"%d %B %Y")) %>%
+  mutate('Date of Birth' = format(`Date of Birth`,"%d/%m/%Y"),
+         'Debut Date' = format(`Debut Date`,"%d/%m/%Y"))
+
+# write.csv(Players_Data_Raw,file = 'Players_Dates.csv')
+
+read.csv('Players_Dates.csv')
+
+MissingPlayerDobs <- read.csv('PlayersWithDOBs.csv')
+MissingPlayerDobs
+
+View(Players_Data_Raw)
+  # mutate('Date of Birth' = 'Date of Birth' %>%
+  #          na_if("-") %>%
+  #          {as.Date(., format = "%d %B %Y")}) %>%
+  # replace_with_na(replace = list(`Date of Birth` = c(NA, '-'))) %>%
+
+Players_Data <- Players_Data_Raw %>%
+  mutate(`Player Name` = str_replace(`Player Name`, "Jack deBelin", "Jack de Belin"),
+         `Player Name` = str_replace(`Player Name`, "Jacob Alick", "Jacob Alick-Wiencke"),
+         `Player Name` = str_replace(`Player Name`, "Jaydn Su'a", "Jaydn Su'A"),
+         `Player Name` = str_replace(`Player Name`, "Joshua Schuster", "Josh Schuster"),
+         `Player Name` = str_replace(`Player Name`, "Liam LeBlanc", "Liam Le Blanc"),
+         `Player Name` = str_replace(`Player Name`, "Mosese Suli", "Moses Suli"),
+         `Player Name` = str_replace(`Player Name`, "Sione Fainu", "Sione Finau"),
+         `Player Name` = str_replace(`Player Name`, "Benjamin TeKura", "Benjamin Te Kura"),
+         `Player Name` = str_replace(`Player Name`, "Jaylan DeGroot", "Jaylan De Groot"),
+         `Player Name` = str_replace(`Player Name`, "Jake AverilloJacob Laban", "Jacob Laban"),
+         `Player Name` = str_replace(`Player Name`, "Dale FinucaneCameron McInnes", "Cameron McInnes"),
+         `Player Name` = str_replace(`Player Name`, "Alexander Brimson", "AJ Brimson")
+                ) %>%
+  mutate(`Date of Birth` = case_when(`Player Name` == 'Jacob Laban' ~ '17/04/2004',
+                                     `Player Name` == 'Cameron McInnes' ~ '01/02/1994',
+         TRUE ~ `Date of Birth`),
+         `Debut Date` = case_when(`Player Name` == 'Jacob Laban' ~ '06/04/2024',
+                                  `Player Name` == 'Cameron McInnes' ~ '05/04/2014',
+         TRUE ~ `Debut Date`),
+         `Player URL` = case_when(`Player Name` == 'Jacob Laban'
+         ~ 'https://www.warriors.kiwi/teams/nrl-premiership/warriors/jacob-laban/',
+                                  `Player Name` == 'Cameron McInnes'
+         ~ 'https://www.sharks.com.au/teams/nrl-premiership/cronulla-sutherland-sharks/cameron-mcinnes/',
+         TRUE ~ `Player URL`)
+         )
+
+View(Players_Data)
+
+Players_Data %>%
+  filter(!is.na(`Date of Birth`)) %>%
+  distinct(`Player Name`,.keep_all = TRUE) %>%
+  View() # 408 of 711 have DOBs
+
+# Jack deBelin -> Jack de Belin
+# Jacob Alick -> Jacob Alick-Wiencke
+# Jaydn Su'a -> Jaydn Su'A
+# Joshua Schuster -> Josh Schuster
+# Liam LeBlanc -> Liam Le Blanc
+# Mosese Suli -> Moses Suli
+# Sione Fainu -> Sione Finau
+# Benjamin TeKura -> Benjamin Te Kura
+# Dale FinucaneCameron McInnes
+# Jake AverilloJacob Laban
+# Jaylan DeGroot -> Jaylan De Groot
+
 ## End of prep ====
 
 # Types of Assists ####
-
 TeamStats_PlayerStats %>%
   filter(Tries > 0 | TryAssists > 0 |
          `LineBreaks (Team)` > 0 | LineBreakAssists > 0 |
@@ -653,7 +861,7 @@ TeamStats_PlayerStats %>%
          "Average run difference", "Line break rate", "Line break differential", "Run metre differential",
          "Possession", "Territory", "Runs",
          "Run Metres", "Dummy Half Runs", "Tackle Busts","Post Contact Metres",
-         "Team Offloads", "Linebreaks","20m Restarts", "Completion Rate",
+         "Team Offloads","20m Restarts", "Completion Rate", # "Linebreaks (Team)"
          "Tackled In Opp 20", "In Goal Escapes","Tackles",
          "Missed Tackles","Team Errors", "Penalties Conceded","Team Kicks","Kick Metres","Team 40/20s",
          "Team 20/40s","Attacking Kicks" ,"Drop Outs","Forced Drop Outs",
@@ -677,8 +885,11 @@ TeamStats_PlayerStats %>%
 
 TeamStats_PlayerStats %>%
   group_by(ID) %>%
-  summarise(Tries = sum(Tries)) %>%
-  count(Tries) # %>%
+  mutate(Tries = sum(Tries)) %>%
+  filter(is.na(Tries)) %>%
+  View() # count(Tries) # %>%
+
+names(TeamStats_PlayerStats)
 
 Assist_NRLstats <- TeamStats_PlayerStats %>%
   mutate('Unassisted Try' = ifelse(`Team Tries` > `Team Try Assists`,
@@ -689,10 +900,29 @@ Assist_NRLstats <- TeamStats_PlayerStats %>%
                                           0),
          'Potential Kick Assist V2' = ifelse(TryAssists > LineBreakAssists & `Player Kicks` > 0,
                                              TryAssists - LineBreakAssists,
-                                          0),
+                                             0),
+         # 'Potential Kick Assist V2' = ifelse(
+         #   TryAssists > LineBreakAssists & `Player Kicks` > 0,
+         #   ifelse(
+         #     TryAssists - LineBreakAssists > 1 & `Player Kicks` > 1,
+         #     TryAssists - LineBreakAssists,  # Keep original calculation if Player Kicks > 1
+         #     ifelse(
+         #       `Player Kicks` <= 1,  # If Player Kicks is less than or equal to 1
+         #       `Player Kicks`,  # Set Potential Kick Assist to Player Kicks
+         #       0  # In case the above conditions aren't met (although this should not happen)
+         #     )
+         #   ),
+         #   0  # If the initial condition is not met, set it to 0
+         # ),
          'Unassisted LineBreak' = ifelse(`Team LineBreaks (summed)` > `Team Line Break Assists`,
                                          `Team LineBreaks (summed)` - `Team Line Break Assists`,
                                           0)) %>%
+  mutate(
+    `Potential Kick Assist V2` = ifelse(
+      `Potential Kick Assist V2` > `Player Kicks`,
+      `Player Kicks`,  # Set it to Player Kicks if it's greater
+      `Potential Kick Assist V2`  # Otherwise, keep the calculated value
+    )) %>%
   mutate('Kick Assist % V1' = ifelse(`Potential Kick Assist V1` > 0 & `Team Try Assists` > 0,
                                   round(as.numeric(!is.na(`Potential Kick Assist V1`))/`Team Try Assists`,2),
                                   0)) %>%
@@ -705,7 +935,21 @@ Assist_NRLstats <- TeamStats_PlayerStats %>%
   mutate('Unassisted LineBreak %' = ifelse(`Unassisted LineBreak` > 0 & `Team LineBreaks (summed)` > 0,
                                            round(as.numeric(!is.na(`Unassisted LineBreak`))/`Team LineBreaks (summed)`,2),
                                            0))
-view(Assist_NRLstats)
+names(Assist_NRLstats)
+
+Assist_NRLstats %>%
+  filter(`Potential Kick Assist V2` > 1,`Player Kicks` < 2) %>%
+  select(Team,Scores,Player,Position,TryAssists,LineBreakAssists,`Player LineBreaks`,
+         `Player Kicks`,BombKicks,CrossFieldKicks,Grubbers,`Potential Kick Assist V2`,
+         `Team Try Assists`,`Team Line Break Assists`) %>%
+  View()
+
+Assist_NRLstats %>%
+  filter(`Potential Kick Assist V2` > `Player Kicks`) %>%
+  select(Team,Scores,Player,Position,TryAssists,LineBreakAssists,`Player LineBreaks`,
+         `Player Kicks`,BombKicks,CrossFieldKicks,Grubbers,`Potential Kick Assist V2`,
+         `Team Try Assists`,`Team Line Break Assists`) %>%
+  View()
 
 Assist_NRLstats %>%
   filter(`Potential Kick Assist V1` != `Potential Kick Assist V2`) %>%
@@ -730,7 +974,7 @@ TeamStats_PlayerStats %>%
 leaguewide_kick_assist_V1 <- mean(Assist_NRLstats$`Kick Assist % V1`, na.rm = TRUE)
 leaguewide_kick_assist_V1
 
-Assist_NRLstats$`Potential Kick Assist V1`
+table(Assist_NRLstats$`Potential Kick Assist V2`)
 
 Assist_NRLstats %>%
   group_by(Team,ID) %>%
@@ -745,10 +989,12 @@ Assist_NRLstats %>%
             Leaguewide_Kick_AssistRate_V1  = sum(Total_Kick_Assists_V1, na.rm = TRUE)/sum(Total_TryAssists, na.rm = TRUE),
             Leaguewide_Kick_AssistRate_V2 = sum(Total_Kick_Assists_V2, na.rm = TRUE)/sum(Total_TryAssists, na.rm = TRUE),
             Leaguewide_Unassisted_Tries = sum(Total_Unassisted_Tries,na.rm = TRUE)/sum(Total_TryAssists, na.rm = TRUE))
+  # summarise(Leaguewide_Kick_AssistRate_V2 = sum(Total_Kick_Assists_V2, na.rm = TRUE)/sum(Total_TryAssists, na.rm = TRUE))
 
+sum(Total_Kick_Assists_V2, na.rm = TRUE)
 # Ways to score.
-# Line Break -> Try (LB + T + ULB). LineBreak Assist (LBA) + Tryssist (TA) -> Line Break(LB) -> Try (LBA + LB + TA + T).
-# Line Break -> Try Assist -> Try (LB + TA + T). Try Assist (TA) -> T (TA[kick] + T)
+# Line Break <- Try (LB + T + ULB). LineBreak Assist (LBA) + Tryssist (TA) <- Line Break(LB) <- Try (LBA + LB + TA + T).
+# Line Break <- Try Assist <- Try (LB + TA + T). Try Assist (TA) <- T (TA[kick] + T)
 
 Assist_NRLstats %>%
   filter(`Player LineBreaks` > 0, Tries > 0, `Player LineBreaks` == Tries) %>%
@@ -756,7 +1002,7 @@ Assist_NRLstats %>%
          Tries,`Player LineBreaks`,LineBreakAssists,TryAssists,`Player Kicks`,
          `Potential Kick Assist V2`,`Unassisted Try`,`Unassisted LineBreak`,
          `Team Tries`,`Team Try Assists`,`Team LineBreaks (summed)`) %>%
-  view() # Line Break -> Try (LB + T).
+  view() # Line Break <- Try (LB + T).
 
 Assist_NRLstats %>%
   group_by(Team,ID) %>%
@@ -773,7 +1019,7 @@ Assist_NRLstats %>%
          `Potential Kick Assist V2`,`Unassisted Try`,`Unassisted LineBreak`,
          `Team Tries`,`Team Try Assists`,`Team LineBreaks (summed)`) %>%
   ungroup() %>%
-  View() # LineBreak Assist (LBA) -> Line Break(LB) -> Try (LBA + LB + TA + T).
+  View() # LineBreak Assist (LBA) <- Line Break(LB) <- Try (LBA + LB + TA + T).
 
 Assist_NRLstats %>%
   filter(`Player LineBreaks` > 0 & TryAssists > 0) %>%
@@ -781,7 +1027,7 @@ Assist_NRLstats %>%
          Tries,`Player LineBreaks`,LineBreakAssists,TryAssists,`Player Kicks`,
          `Potential Kick Assist V2`,`Unassisted Try`,`Unassisted LineBreak`,
          `Team Tries`,`Team Try Assists`,`Team LineBreaks (summed)`) %>%
-  View() # Line Break -> Try Assist -> Try (LB + TA + T).
+  View() # Line Break <- Try Assist <- Try (LB + TA + T).
 
 sum(Assist_NRLstats$TryAssists, na.rm = TRUE)
 sum(Assist_NRLstats$Tries, na.rm = TRUE)
@@ -824,10 +1070,6 @@ TeamStats_PlayerStats %>%
   distinct(Team,ID,.keep_all = TRUE) %>%
   filter(`Team LineBreaks (summed)` != `LineBreaks (Team)`) %>%
   select(`Team LineBreaks (summed)`,`LineBreaks (Team)`) %>%
-  view()
-
-  TeamStats_PlayerStats %>%
-  filter(ID == '2021-1-1') %>%
   view()
 
 TeamStats_PlayerStats %>%
@@ -874,6 +1116,14 @@ Fast_NRLr_long <- Fast_NRLr %>%
 view(Fast_NRLr_long)
 
 # Scoring ====
+TeamStats_PlayerStats %>%
+  distinct(Player,.keep_all = TRUE) %>%
+  select(Player,Team) %>%
+  view()
+
+TeamStats_PlayerStats %>%
+  distinct(Player,Team) %>%
+  view()
 
 names(TeamStats_PlayerStats)
 TeamStats_PlayerStats %>%
@@ -1029,23 +1279,23 @@ ggplotly(Points_LineBreaks_Plot)
 # Each linebreak adds expected points
 
 # Expected points regression ####
+
+# Expected Points V2 is generally higher in V2. Need to test the residuals for that.
+# Calculate MAE for both. Maybe add Tackled in Opp 20 to a covariances V3 of model.
+# Tackled in Opp 20 is in non-covariance V4. Reread testing models om Test data
 # Run metres, possession, line breaks
 
+View(Full_Fast_NRLr)
+
 set.seed(101)
-sample = sample.split(Full_Fast_NRLr$ID, SplitRatio = .75)
-Training_data = subset(Full_Fast_NRLr, sample == TRUE)
-Test_data = subset(Full_Fast_NRLr, sample == FALSE)
 
-view(Training_data) # 619
-view(Test_data) # 207
+game_ids <- unique(Full_Fast_NRLr$ID)
 
-Training_data <- Full_Fast_NRLr %>%
-  filter(ID %in% Training_data$ID)
-view(Training_data)
+split <- sample.split(game_ids, SplitRatio = 0.75)
 
-Test_data <- Full_Fast_NRLr %>%
-  filter(ID %in% Test_data$ID)
-view(Test_data)
+Training_data <- Full_Fast_NRLr[Full_Fast_NRLr$ID %in% game_ids[split], ]
+
+Test_data <- Full_Fast_NRLr[Full_Fast_NRLr$ID %in% game_ids[!split], ]
 
 Full_Fast_NRLr %>%
   ggplot(aes(x = `Run Metres`,y = Scores)) +
@@ -1075,7 +1325,7 @@ plot(Exp_points_V1$residuals)
 
 Exp_points_V1$fitted.values
 view(Exp_points_V1$residuals)
-shapiro.test(Exp_points_V1$residuals)
+shapiro.test(Exp_points_V1$residuals) # Not normal
 
 mean(Exp_points_V1$residuals)
 sd(Exp_points_V1$residuals)
@@ -1094,10 +1344,8 @@ Normal_Plot_Exp_points_V1 <- Exp_points_V1 %>%
     size = 1
   ) +
   xlim(-25, 25)
-ggplotly(Normal_Plot_Exp_points_V1)
+# ggplotly(Normal_Plot_Exp_points_V1)
 Normal_Plot_Exp_points_V1
-residuals <- resid(Exp_points_V1)
-Exp_points_V1$residuals
 
 qqplot <- ggplot(data.frame(residuals = residuals), aes(sample = residuals)) +
   stat_qq() +
@@ -1136,9 +1384,9 @@ points_preds_V1 <- data.frame(predict.lm(Exp_points_V1,newdata = Test_data)) %>%
 points_preds_V1
 Test_data_preds_V1 <- cbind(Test_data,points_preds_V1)
 
-Test_data_preds_V1 %>%
-  select(Team,Scores,expected_points,ID) %>%
-  view()
+Test_data_preds_Table_V1 <- Test_data_preds_V1 %>%
+  select(Team,Scores,expected_points,ID)
+View(Test_data_preds_Table_V1)
 vip(Exp_points_V1)
 
 # Testing V2 (covariance) on Test Data ====
@@ -1153,9 +1401,30 @@ points_preds_covar_V2 <- data.frame(predict.lm(Exp_points_covar_V2,newdata = Tes
 
 Test_data_preds_V2 <- cbind(Test_data,points_preds_covar_V2)
 
-Test_data_preds_V2 %>%
-  select(Team,Scores,expected_points,ID) %>%
-  view()
+Test_data_preds_Table_V2 <- Test_data_preds_V2 %>%
+  select(Team,Scores,expected_points,ID)
+View(Test_data_preds_Table_V2)
+
+Test_data_preds_OverallTable <-
+  full_join(Test_data_preds_Table_V1,Test_data_preds_Table_V2,
+            by = c('Team','ID'))
+View(Test_data_preds_OverallTable)
+
+Training_data$`Tackled In Opp 20`
+
+# Testing V3 (covariance) on Test Data ====
+Exp_points_covar_V3 <- glm(Scores ~ (Possession  + Linebreaks +
+                                     `Run Metres` + `Tackled In Opp 20`)^2,
+                           data = Training_data)
+summary(Exp_points_covar_V3)
+vip(Exp_points_covar_V3)
+
+# Testing V4 on Test Data ====
+Exp_points_covar_V4 <- glm(Scores ~ Possession  + Linebreaks +
+                                       `Run Metres` + `Tackled In Opp 20`,
+                           data = Training_data)
+summary(Exp_points_covar_V4)
+vip(Exp_points_covar_V4)
 
 # Create training and test data (80 & 20%)
 
