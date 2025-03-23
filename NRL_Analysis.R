@@ -15,6 +15,7 @@ library(tidymodels)
 library(DT)
 library(readr)
 library(readxl)
+library(lubridate)
 
 # renv::snapshot()
 
@@ -92,7 +93,7 @@ NRL_away_teams <- NRL_seasons[even_indices, ]
 NRL_home_teams <- NRL_seasons[odd_indices, ]
 
 Fast_NRLr <- inner_join(NRL_home_teams,NRL_away_teams,by=c('ID','Season','Game Type'))
-view(Fast_NRLr)
+names(Fast_NRLr)
 
 New_cols <- c("ID","Home Team","Home Score",
 "Home Possession","Home Territory","Home Runs",
@@ -246,7 +247,6 @@ colnames(Away_Fast_NRLr) <- Full_colnames
 # Creating Full_Fast_NRLr ####
 Full_Fast_NRLr <- rbind(Home_Fast_NRLr,Away_Fast_NRLr) %>%
   mutate(Team = str_to_title(Team))
-View(Full_Fast_NRLr)
 
 Full_Fast_NRLr <- Full_Fast_NRLr %>%
   mutate('Game Type' = case_when(ID %in% c('2024-31-1','2024-30-2','2024-30-1',
@@ -263,11 +263,8 @@ Full_Fast_NRLr <- Full_Fast_NRLr %>%
                                            "2021-28-1","2021-28-2","2021-29-1") ~ "Playoff",
                                  TRUE ~ 'Regular Season'))
 
-getwd()
-MatchDates <- read.csv('PlayersWithDOBs.csv')
-
-# df_with_na <- Full_Fast_NRLr[apply(Full_Fast_NRLr, 1, function(x) any(is.na(x))), ]
-# View(df_with_na)
+# Matching Dates to games from here ====
+GameDates_V1 <- read.csv('match_dates_selenium.csv')
 
 # NRL ladders 2015-2024 ####
 NRL_ladders_1524 <- "NRLladders2015-2024.xlsx"
@@ -275,7 +272,6 @@ NRL_ladders_1524 <- "NRLladders2015-2024.xlsx"
 tab_NRL <- excel_sheets(path = NRL_ladders_1524)
 
 NRL_seasons <- lapply(tab_NRL, function(x) read_excel(path = NRL_ladders_1524, sheet = x))
-View(NRL_seasons)
 
 NRL_seasons <- lapply(NRL_seasons, function(df)
   df %>% select(1:9)  # Replace with your desired column names
@@ -300,7 +296,6 @@ NRL_MergedSeasons <- do.call(rbind, NRL_seasons[order(names(NRL_seasons))]) %>%
 NRL_PlayerStats <-
   read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_player_stats_with_urls.xlsx") %>%
   select(-1,-5,-7,-16,-18,-22,-35,-41,-48,-58,-68)
-View(NRL_PlayerStats)
 unique(NRL_PlayerStats$URL) # 760
 
 NRL_PlayerStats_ids_34x_32 <- c("2021-1-1", "2021-1-2", "2021-1-3","2021-1-4", "2021-1-5", "2021-1-6", "2021-1-7", "2021-1-8",
@@ -415,11 +410,6 @@ NRL_PlayerStats_final_ids <- c(Repeated_NRL_PlayerStats_ids_34x_32, Repeated_NRL
 length(NRL_PlayerStats_final_ids)
 
 NRL_PlayerStats$ID <- NRL_PlayerStats_final_ids
-View(NRL_PlayerStats)
-
-# NRL_PlayerStats %>%
-#   filter(ID %in% '2021-18-3') %>%
-#   View()
 
 NRL_PlayerStats_Finals_Original <-
   read_excel("C:/Users/dan.fraser/PycharmProjects/pythonProject/nrl_finals_player_stats_with_urls.xlsx") %>%
@@ -489,8 +479,16 @@ colnames(NRL_PlayerStats_Finals_Original) <- Player_ColNames
 colnames(NRL_PlayerStats_2024_Finals) <- Player_ColNames
 
 NRL_PlayerStats_JoinedOriginal <-
-  rbind(NRL_PlayerStats,NRL_PlayerStats_Finals_Original,NRL_PlayerStats_2024_Finals)
-# unique(NRL_PlayerStats_JoinedOriginal$Player)
+  rbind(NRL_PlayerStats,NRL_PlayerStats_Finals_Original,NRL_PlayerStats_2024_Finals) %>%
+  left_join(GameDates_V1, by = 'URL') %>%
+  mutate(Season = substr(ID, 1, 4)) %>%
+  mutate(
+    Date = Date %>%
+      strsplit(" ") %>%                     # Split into parts
+      sapply(function(x) paste0(gsub("(\\d+)(TH|ST|ND|RD)", "\\1", x[2]), " ", str_to_title(tolower(x[3])))),  # Clean ordinal suffix and format month
+    Date = paste(Date, Season)    # Combine with season
+  ) %>%
+  mutate(Date = dmy(Date) %>% format("%d/%m/%Y"))
 
 team_mapping <- c(
   "rabbitohs" = "Rabbitohs",
@@ -562,7 +560,10 @@ NRL_PlayerStats_Joined <- NRL_PlayerStats_JoinedOriginal %>%
          Player = str_replace(Player, "Tallyn DaSilva", "Tallyn Da Silva"),
          Player = str_replace(Player, "Te  MaireMartin", "Te Maire Martin"),
          Player = str_replace(Player, "Jack deBelin", "Jack de Belin"),
+         Player = str_replace(Player, "Jack De Belin", "Jack de Belin"),
+         Player = str_replace(Player, "Jack DeBelin", "Jack de Belin"),
          Player = str_replace(Player, "Jacob Alick", "Tevita Pangai Junior"),
+         Player = str_replace(Player, "Josh Papalii", "Josh Papali'i"),
          Player = str_replace(Player, "Jaydn Su'a", "Jaydn Su'A"),
          Player = str_replace(Player, "Joshua Schuster", "Josh Schuster"),
          Player = str_replace(Player, "Liam LeBlanc", "Liam Le Blanc"),
@@ -629,25 +630,6 @@ finals_opponents_2024 <- rep(finals_teams_2024,each = 18)
 
 NRL_PlayerStats_Joined$Opponent[Missing_Opponent] <- finals_opponents_2024
 
-# NRL_PlayerStats_Joined_NAs <- NRL_PlayerStats_Joined[apply(NRL_PlayerStats_Joined, 1, function(x) any(is.na(x))), ]
-# View(NRL_PlayerStats_Joined)
-View(NRL_PlayerStats_Joined)
-
-# Check <- Full_Fast_NRLr %>%
-#   filter(ID %in% c('2021-18-1','2021-18-2','2021-18-3','2021-18-4',
-#                    '2021-18-5','2021-18-6','2021-18-7','2021-18-8',
-#                    '2021-20-1','2021-20-2','2021-20-3','2021-20-4',
-#                    '2021-20-5','2021-20-6','2021-20-7','2021-20-8'))
-# View(Check)
-
-# NRL_PlayerStats %>%
-#   filter(ID %in% c('2021-18-1','2021-18-2','2021-18-3','2021-18-4',
-#                    '2021-18-5','2021-18-6','2021-18-7','2021-18-8',
-#                    '2021-20-1','2021-20-2','2021-20-3','2021-20-4',
-#                    '2021-20-5','2021-20-6','2021-20-7','2021-20-8')) %>%
-#   distinct(ID,Team) %>%
-#   View()
-
 # IDs for NRL_PlayerStats_Joined & Full_Fast_NRLr are mixed up. 2021-18-3, 2021-18-4, 2021-20-4, 2021-20-5 & 2021-20-6
 # 2021-20-4, 2021-20-5 & 2021-20-6 should be Knights-Raiders, Storm-Panthers & Dragons-Rabbitohs
 
@@ -660,14 +642,6 @@ Fixed_Full_Fast_NRLr <- Full_Fast_NRLr %>%
     ID == '2021-20-4' ~ '2021-20-6',
     TRUE ~ ID  # Keep other values unchanged
   ))
-
-Fixed_Full_Fast_NRLr %>%
-  filter(ID %in% c('2021-18-3','2021-18-4',
-                '2021-20-6','2021-20-5',
-                '2021-20-4')) %>%
-  View()
-
-Players_Check <-
 
 # Creating NRL_Team_Player_Stats ####
 NRL_Team_Player_Stats <- full_join(Fixed_Full_Fast_NRLr,NRL_PlayerStats_Joined,
@@ -684,7 +658,6 @@ NRL_Team_Player_Stats <- full_join(Fixed_Full_Fast_NRLr,NRL_PlayerStats_Joined,
          'Team 40/20s' = `40/20s`,
          'Team 20/40s' = `20/40s`,
          "Player Forced Drop Outs" = ForcedDropOuts)
-View(NRL_Team_Player_Stats)
 
 # Fixing Opponent ####
 opponent_mapping <- NRL_Team_Player_Stats %>%
@@ -723,84 +696,60 @@ TeamStats_PlayerStats <- NRL_Team_Player_Stats %>%
 
 # Check to see if join between Full_Fast_NRLr & TeamStats_PlayerStats worked correctly
 TeamStats_PlayerStats_na <- TeamStats_PlayerStats[apply(TeamStats_PlayerStats, 1, function(x) any(is.na(x))), ]
-View(TeamStats_PlayerStats_na)
 
 unique(NRL_PlayerStats_Joined$Player)
 TeamStats_PlayerStats %>%
   filter(is.na(Player))
 
 # Player Names/Ages ====
-
-Player_details <-
-  readxl::read_xlsx('player_details.xlsx')
-
-Player_details_2 <-
-  readxl::read_xlsx('player_details_2.xlsx')
-
-Player_details_3 <-
-  readxl::read_xlsx('player_details_3.xlsx')
-
-Player_details_4 <-
-  readxl::read_xlsx('player_details_4.xlsx')
-
-Player_details_5 <-
-  readxl::read_xlsx('player_details_5.xlsx')
-
-Player_details_6 <-
-  readxl::read_xlsx('player_details_6.xlsx')
-
-Player_details_7 <-
-  readxl::read_xlsx('player_details_7.xlsx')
-
-Player_details_8 <-
-  readxl::read_xlsx('player_details_8.xlsx')
-
-Player_details_9 <-
-  readxl::read_xlsx('player_details_9.xlsx')
-
-Player_details_10 <-
-  readxl::read_xlsx('player_details_10.xlsx')
-
-Player_details_11 <-
-  readxl::read_xlsx('player_details_11.xlsx')
-
-Player_details_12 <-
-  readxl::read_xlsx('player_details_12.xlsx')
-View(Player_details)
-
-Players_Data_Raw <-
-  rbind(Player_details,Player_details_2,Player_details_3,
-        Player_details_4,Player_details_5,Player_details_6,
-        Player_details_7,Player_details_8,Player_details_9,
-        Player_details_10,Player_details_11,Player_details_12) %>%
-  rename('Debut Date' = Date) %>%
-  # na_if("-") %>%
-  # {as.Date(., format = "%d %B %Y")})
-  mutate('Date of Birth' = as.Date(`Date of Birth`, "%d %B %Y"),
-         'Debut Date' = as.Date(`Debut Date`,"%d %B %Y")) %>%
-  mutate('Date of Birth' = format(`Date of Birth`,"%d/%m/%Y"),
-         'Debut Date' = format(`Debut Date`,"%d/%m/%Y"))
-
 # write.csv(Players_Data_Raw,file = 'Players_Dates.csv')
 
-read.csv('Players_Dates.csv')
+Players_Data_Raw <- read.csv('Players_Dates.csv') %>%
+  rename('Player Name' = Player.Name,
+         'Date of Birth' = Date.of.Birth,
+         'Debut Date' = Debut.Date,
+         'Player URL' = Player.URL) %>%
+  select(-1) %>%
+  relocate('Player URL',.after = `Player Name`)
 
-MissingPlayerDobs <- read.csv('PlayersWithDOBs.csv')
-MissingPlayerDobs
+# Players_Data_Raw <- Players_Data_Raw %>%
+  # rbind(Player_details,Player_details_2,Player_details_3,
+  #       Player_details_4,Player_details_5,Player_details_6,
+  #       Player_details_7,Player_details_8,Player_details_9,
+  #       Player_details_10,Player_details_11,Player_details_12) %>%
+  # rename('Debut Date' = Date) %>%
+  # na_if("-") %>%
+  # {as.Date(., format = "%d %B %Y")})
+  # mutate('Date of Birth' = as.Date(`Date of Birth`, "%d %B %Y"),
+  #        'Debut Date' = as.Date(`Debut Date`,"%d %B %Y")) %>%
+  # mutate('Date of Birth' = format(`Date of Birth`,"%d/%m/%Y"),
+  #        'Debut Date' = format(`Debut Date`,"%d/%m/%Y"))
 
-View(Players_Data_Raw)
+MissingPlayerDobs <- read.csv('PlayersWithDOBs.csv') %>%
+  mutate(Date.of.Birth = dmy(Date.of.Birth)) %>%
+  mutate(Date.of.Birth = format(Date.of.Birth, "%d/%m/%Y"),
+         'Player URL' = NA,
+         'Debut Date' = NA) %>%
+  rename('Player Name' = Player,
+         'Date of Birth' = Date.of.Birth)
+
   # mutate('Date of Birth' = 'Date of Birth' %>%
   #          na_if("-") %>%
   #          {as.Date(., format = "%d %B %Y")}) %>%
   # replace_with_na(replace = list(`Date of Birth` = c(NA, '-'))) %>%
 
+Players_Data_Raw %>%
+  distinct(`Player Name`)
+
 Players_Data <- Players_Data_Raw %>%
   mutate(`Player Name` = str_replace(`Player Name`, "Jack deBelin", "Jack de Belin"),
+         `Player Name` = str_replace(`Player Name`, "Jack DeBelin", "Jack de Belin"),
          `Player Name` = str_replace(`Player Name`, "Jacob Alick", "Jacob Alick-Wiencke"),
          `Player Name` = str_replace(`Player Name`, "Jaydn Su'a", "Jaydn Su'A"),
          `Player Name` = str_replace(`Player Name`, "Joshua Schuster", "Josh Schuster"),
          `Player Name` = str_replace(`Player Name`, "Liam LeBlanc", "Liam Le Blanc"),
          `Player Name` = str_replace(`Player Name`, "Mosese Suli", "Moses Suli"),
+         `Player Name` = str_replace(`Player Name`, "Josh Papalii", "Josh Papali'i"),
          `Player Name` = str_replace(`Player Name`, "Sione Fainu", "Sione Finau"),
          `Player Name` = str_replace(`Player Name`, "Benjamin TeKura", "Benjamin Te Kura"),
          `Player Name` = str_replace(`Player Name`, "Jaylan DeGroot", "Jaylan De Groot"),
@@ -810,6 +759,8 @@ Players_Data <- Players_Data_Raw %>%
                 ) %>%
   mutate(`Date of Birth` = case_when(`Player Name` == 'Jacob Laban' ~ '17/04/2004',
                                      `Player Name` == 'Cameron McInnes' ~ '01/02/1994',
+                                     `Player Name` == 'Benjamin Te Kura' ~ '10/04/2004',
+                                     `Player Name` == "Josh Papali'i" ~ '13/05/1992',
          TRUE ~ `Date of Birth`),
          `Debut Date` = case_when(`Player Name` == 'Jacob Laban' ~ '06/04/2024',
                                   `Player Name` == 'Cameron McInnes' ~ '05/04/2014',
@@ -821,12 +772,42 @@ Players_Data <- Players_Data_Raw %>%
          TRUE ~ `Player URL`)
          )
 
-View(Players_Data)
+unique(Full_TeamStats_PlayerStats$Player)
 
-Players_Data %>%
-  filter(!is.na(`Date of Birth`)) %>%
+Full_Players_Date <- Players_Data %>%
+  # left_join(MissingPlayerDobs,)
+  left_join(MissingPlayerDobs, by = "Player Name", suffix = c(".x", ".y")) %>%
+  mutate(
+    `Player URL` = coalesce(`Player URL.x`, `Player URL.y`),
+    `Date of Birth` = coalesce(`Date of Birth.x`, `Date of Birth.y`),
+    `Debut Date` = coalesce(`Debut Date.x`, `Debut Date.y`)
+  ) %>%
+  select(`Player Name`, `Player URL`, `Date of Birth`,`Debut Date`) %>%
   distinct(`Player Name`,.keep_all = TRUE) %>%
-  View() # 408 of 711 have DOBs
+  rename(Player = `Player Name`)
+
+Full_Players_Date %>% # Players_Data %>%
+  filter(!is.na(`Date of Birth`)) %>%
+  distinct(Player,.keep_all = TRUE) %>%
+  View() # 629 of 711 have DOBs
+
+# Joing TeamStats_PlayerStats with Full_Players_Date (Player DOBs)
+Full_TeamStats_PlayerStats <- TeamStats_PlayerStats %>%
+  left_join(Full_Players_Date %>%
+            select(Player,`Date of Birth`),
+            by = 'Player') %>%
+  mutate( # Date = as.Date(Date,format = "%d-%m-%Y"),
+         Date = if_else(!is.na(Date), as.Date(Date, format = "%d/%m/%Y"),
+                        as.Date(NA)),
+         `Date of Birth` = if_else(!is.na(`Date of Birth`), as.Date(`Date of Birth`, format = "%d/%m/%Y"),
+                        as.Date(NA))) %>%
+  filter(!is.na(`Date of Birth`)) %>%  # Exclude rows where DOB is NA
+  mutate(
+    Age = as.numeric(difftime(Date, `Date of Birth`, units = "weeks")) / 52.25,  # Calculate age in years
+    Age = floor(Age)  # Round down to the nearest whole year
+  ) %>%
+  mutate(MinsPlayed = gsub(":",".",MinsPlayed) %>% as.numeric(MinsPlayed))
+  # `Date of Birth` = as.Date(`Date of Birth`,format = "%d-%m-%Y"))
 
 # Jack deBelin -> Jack de Belin
 # Jacob Alick -> Jacob Alick-Wiencke
@@ -841,6 +822,29 @@ Players_Data %>%
 # Jaylan DeGroot -> Jaylan De Groot
 
 ## End of prep ====
+
+unique(Full_TeamStats_PlayerStats$Position)
+names(Full_TeamStats_PlayerStats)
+
+Full_TeamStats_PlayerStats %>%
+  filter(Position == 'Prop' & is.na(MinsPlayed))
+  # %>% View()
+
+Full_TeamStats_PlayerStats %>%
+  filter(Position == 'Fullback' &
+         # !Position == 'Replacement',
+         !is.na(Age)
+         & !is.na(MinsPlayed)) %>%
+  group_by(Age) %>%
+  summarise(
+    Games = n(),
+    Players = n_distinct(Player),
+    Avg_Minutes = mean(MinsPlayed,na.omit = TRUE),
+    Avg_Runs = mean(AllRuns),
+    Avg_RunMetres = mean(AllRunMetres),
+    Avg_Tackles = mean(TacklesMade),
+    Avg_Missed_Tackles = mean(MissedTackles)
+  )
 
 # Types of Assists ####
 TeamStats_PlayerStats %>%
@@ -1282,10 +1286,8 @@ ggplotly(Points_LineBreaks_Plot)
 
 # Expected Points V2 is generally higher in V2. Need to test the residuals for that.
 # Calculate MAE for both. Maybe add Tackled in Opp 20 to a covariances V3 of model.
-# Tackled in Opp 20 is in non-covariance V4. Reread testing models om Test data
+# Tackled in Opp 20 is in non-covariance V4. Reread testing models on Test data
 # Run metres, possession, line breaks
-
-View(Full_Fast_NRLr)
 
 set.seed(101)
 
@@ -1347,7 +1349,8 @@ Normal_Plot_Exp_points_V1 <- Exp_points_V1 %>%
 # ggplotly(Normal_Plot_Exp_points_V1)
 Normal_Plot_Exp_points_V1
 
-qqplot <- ggplot(data.frame(residuals = residuals), aes(sample = residuals)) +
+qqplot <-
+  ggplot(data.frame(residuals = residuals), aes(sample = residuals)) +
   stat_qq() +
   stat_qq_line() +
   labs(title = "QQ Plot of Residuals", x = "Theoretical Quantiles", y = "Sample Quantiles")
@@ -1407,7 +1410,11 @@ View(Test_data_preds_Table_V2)
 
 Test_data_preds_OverallTable <-
   full_join(Test_data_preds_Table_V1,Test_data_preds_Table_V2,
-            by = c('Team','ID'))
+            by = c('Team','ID')) %>%
+  select(-Scores.y) %>%
+  rename(Scores = Scores.x,
+         V1_Expected_Points = expected_points.x,
+         V2_Expected_Points = expected_points.y)
 View(Test_data_preds_OverallTable)
 
 Training_data$`Tackled In Opp 20`
